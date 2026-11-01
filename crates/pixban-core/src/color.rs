@@ -11,6 +11,21 @@ impl Rgb {
         Rgb((v >> 16) as u8, (v >> 8) as u8, v as u8)
     }
 
+    pub const BLACK: Rgb = Rgb(0, 0, 0);
+    pub const WHITE: Rgb = Rgb(255, 255, 255);
+
+    /// Perceived brightness on a 0 to 255000 scale, for picking the darkest of several colors.
+    pub fn luma(self) -> u32 {
+        299 * u32::from(self.0) + 587 * u32::from(self.1) + 114 * u32::from(self.2)
+    }
+
+    /// Moves `percent` of the way from `self` to `other`, per channel, rounding to nearest.
+    pub fn mix(self, other: Rgb, percent: u32) -> Rgb {
+        let p = percent.min(100);
+        let f = |a: u8, b: u8| ((u32::from(a) * (100 - p) + u32::from(b) * p + 50) / 100) as u8;
+        Rgb(f(self.0, other.0), f(self.1, other.1), f(self.2, other.2))
+    }
+
     pub fn darken(self, percent_left: u16) -> Rgb {
         let f = |c: u8| (u16::from(c) * percent_left / 100) as u8;
         Rgb(f(self.0), f(self.1), f(self.2))

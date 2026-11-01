@@ -1,4 +1,5 @@
 mod color;
+mod effects;
 mod error;
 pub mod font;
 mod layout;
@@ -14,9 +15,12 @@ mod svg;
 pub use color::{ParseColorError, Rgb, Rgba};
 pub use error::{Error, ParseError};
 pub use font::{CaseMode, Font, Glyph};
-pub use layout::{layout, Layout, LayoutLine, LayoutOptions, PlacedGlyph};
+pub use layout::{layout, Align, Layout, LayoutLine, LayoutOptions, PlacedGlyph};
 pub use lint::{lint, Coverage, Report, Script};
-pub use palette::Palette;
+pub use palette::{Palette, Resolved};
 pub use render::{render, Grid, Rendered};
-pub use spec::{Direction, Fill, Shadow, Spec};
+pub use spec::{
+    Bevel, Connectivity, Direction, Dither, Extrude, Fill, Outline, Plate, Shadow, Spec, Texture,
+    TextureKind,
+};
 pub use specimen::specimen;

@@ -99,9 +99,16 @@ fn run(cli: Cli) -> Result<(), String> {
             }
             return Ok(());
         }
-        Some(Command::Palettes) => {
+        Some(Command::Palettes { all }) => {
             for name in palette::names() {
                 println!("{name}");
+            }
+            if all {
+                println!();
+                println!("extended:");
+                for name in palette::extended_names() {
+                    println!("{name}");
+                }
             }
             return Ok(());
         }

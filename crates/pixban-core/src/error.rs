@@ -19,12 +19,39 @@ pub enum Error {
     Font(ParseError),
     UnknownPalette(String),
     EmptyText,
-    MultiLine,
-    TextTooLong { chars: usize, max: usize },
-    CanvasTooLarge { width: u64, height: u64 },
-    OutputTooLarge { width: u64, height: u64 },
-    InvalidScale { scale: u32, max: u32 },
-    InvalidShadowOffset { dx: i32, dy: i32, max: i32 },
+    TooManyLines {
+        lines: usize,
+        max: usize,
+    },
+    TextTooLong {
+        chars: usize,
+        max: usize,
+    },
+    CanvasTooLarge {
+        width: u64,
+        height: u64,
+    },
+    OutputTooLarge {
+        width: u64,
+        height: u64,
+    },
+    InvalidScale {
+        scale: u32,
+        max: u32,
+    },
+    InvalidShadowOffset {
+        dx: i32,
+        dy: i32,
+        max: i32,
+    },
+    OutOfRange {
+        what: &'static str,
+        value: i64,
+        min: i64,
+        max: i64,
+    },
+    InvalidPalette(String),
+    InvalidSetting(String),
     Encode(String),
 }
 
@@ -34,7 +61,9 @@ impl fmt::Display for Error {
             Error::Font(e) => write!(f, "font: {e}"),
             Error::UnknownPalette(name) => write!(f, "unknown palette '{name}'"),
             Error::EmptyText => write!(f, "text is empty"),
-            Error::MultiLine => write!(f, "multi-line text is not supported yet"),
+            Error::TooManyLines { lines, max } => {
+                write!(f, "text has {lines} lines, the limit is {max}")
+            }
             Error::TextTooLong { chars, max } => {
                 write!(f, "text has {chars} characters, the limit is {max}")
             }
@@ -57,7 +86,26 @@ impl fmt::Display for Error {
                 f,
                 "shadow offset {dx},{dy} is out of range, each value must be between -{max} and {max}"
             ),
+            Error::OutOfRange {
+                what,
+                value,
+                min,
+                max,
+            } => write!(f, "{what} {value} is out of range, use {min} to {max}"),
+            Error::InvalidPalette(msg) => write!(f, "invalid palette: {msg}"),
+            Error::InvalidSetting(msg) => f.write_str(msg),
             Error::Encode(msg) => write!(f, "encoding failed: {msg}"),
+        }
+    }
+}
+
+impl Error {
+    pub(crate) fn out_of_range(what: &'static str, value: i64, min: i64, max: i64) -> Error {
+        Error::OutOfRange {
+            what,
+            value,
+            min,
+            max,
         }
     }
 }

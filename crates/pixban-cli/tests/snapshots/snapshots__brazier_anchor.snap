@@ -1,0 +1,15 @@
+---
+source: crates/pixban-cli/tests/snapshots.rs
+expression: "svg(& [\"brazier\", \"-f\", \"block\", \"-p\", \"fire\", \"--shadow\", \"1,1\"])"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="64" viewBox="0 0 55 8" shape-rendering="crispEdges" role="img">
+<title>brazier</title>
+<path fill="#df4f07" d="M0 0h5v1h-5zM8 0h5v1h-5zM17 0h4v1h-4zM24 0h6v1h-6zM32 0h6v1h-6zM40 0h6v1h-6zM48 0h5v1h-5z"/>
+<path fill="#df5707" d="M0 1h2v1h-2zM4 1h2v1h-2zM8 1h2v1h-2zM12 1h2v1h-2zM16 1h2v1h-2zM20 1h2v1h-2zM28 1h2v1h-2zM34 1h2v1h-2zM40 1h2v1h-2zM48 1h2v1h-2zM52 1h2v1h-2z"/>
+<path fill="#470f07" d="M2 1h2v1h-2zM10 1h2v1h-2zM18 1h2v1h-2zM25 1h3v1h-3zM30 1h1v1h-1zM33 1h1v1h-1zM36 1h3v1h-3zM42 1h5v1h-5zM50 1h2v1h-2zM2 2h1v1h-1zM6 2h1v1h-1zM10 2h1v1h-1zM14 2h1v1h-1zM18 2h1v1h-1zM22 2h1v5h-1zM29 2h2v1h-2zM36 2h1v4h-1zM42 2h1v1h-1zM50 2h1v1h-1zM54 2h1v1h-1zM5 3h2v1h-2zM13 3h2v1h-2zM28 3h2v1h-2zM53 3h2v1h-2zM2 4h2v1h-2zM10 4h1v3h-1zM13 4h1v1h-1zM18 4h2v1h-2zM27 4h2v1h-2zM42 4h4v1h-4zM50 4h1v3h-1zM53 4h1v1h-1zM2 5h1v1h-1zM6 5h1v1h-1zM18 5h1v2h-1zM26 5h2v1h-2zM42 5h1v1h-1zM5 6h2v1h-2zM14 6h1v1h-1zM54 6h1v1h-1zM1 7h5v1h-5zM9 7h2v1h-2zM13 7h2v1h-2zM17 7h2v1h-2zM21 7h2v1h-2zM25 7h6v1h-6zM33 7h6v1h-6zM41 7h6v1h-6zM49 7h2v1h-2zM53 7h2v1h-2z"/>
+<path fill="#d75f07" d="M0 2h2v1h-2zM4 2h2v1h-2zM8 2h2v1h-2zM12 2h2v1h-2zM16 2h2v1h-2zM20 2h2v1h-2zM27 2h2v1h-2zM34 2h2v1h-2zM40 2h2v1h-2zM48 2h2v1h-2zM52 2h2v1h-2z"/>
+<path fill="#cf6f0f" d="M0 3h5v1h-5zM8 3h5v1h-5zM16 3h6v1h-6zM26 3h2v1h-2zM34 3h2v1h-2zM40 3h5v1h-5zM48 3h5v1h-5z"/>
+<path fill="#cf7f0f" d="M0 4h2v1h-2zM4 4h2v1h-2zM8 4h2v1h-2zM11 4h2v1h-2zM16 4h2v1h-2zM20 4h2v1h-2zM25 4h2v1h-2zM34 4h2v1h-2zM40 4h2v1h-2zM48 4h2v1h-2zM51 4h2v1h-2z"/>
+<path fill="#c78f17" d="M0 5h2v1h-2zM4 5h2v1h-2zM8 5h2v1h-2zM12 5h2v1h-2zM16 5h2v1h-2zM20 5h2v1h-2zM24 5h2v1h-2zM34 5h2v1h-2zM40 5h2v1h-2zM48 5h2v1h-2zM52 5h2v1h-2z"/>
+<path fill="#bf9f1f" d="M0 6h5v1h-5zM8 6h2v1h-2zM12 6h2v1h-2zM16 6h2v1h-2zM20 6h2v1h-2zM24 6h6v1h-6zM32 6h6v1h-6zM40 6h6v1h-6zM48 6h2v1h-2zM52 6h2v1h-2z"/>
+</svg>

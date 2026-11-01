@@ -1,0 +1,126 @@
+use std::process::Command;
+
+fn svg(args: &[&str]) -> String {
+    let out = Command::new(env!("CARGO_BIN_EXE_pixban"))
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "pixban {args:?} failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    String::from_utf8(out.stdout).unwrap()
+}
+
+macro_rules! preset {
+    ($name:ident, $($arg:expr),+ $(,)?) => {
+        #[test]
+        fn $name() {
+            insta::assert_snapshot!(svg(&[$($arg),+]));
+        }
+    };
+}
+
+preset!(
+    brazier_anchor,
+    "brazier",
+    "-f",
+    "block",
+    "-p",
+    "fire",
+    "--shadow",
+    "1,1"
+);
+preset!(
+    outline_and_extrusion,
+    "PIXBAN",
+    "-p",
+    "ocean",
+    "--outline",
+    "1",
+    "--extrude",
+    "4",
+    "--scale",
+    "4"
+);
+preset!(
+    diagonal_bevel,
+    "PIXBAN",
+    "-p",
+    "synthwave",
+    "--gradient",
+    "diagonal",
+    "--bevel",
+    "30",
+    "--shadow",
+    "1,1"
+);
+preset!(
+    dithered_custom_palette,
+    "PIXBAN",
+    "-p",
+    "#ff3c00,#ffcc00/#220a00",
+    "--dither",
+    "bayer4"
+);
+preset!(
+    scanlines_on_a_cut_plate,
+    "PIXBAN",
+    "-p",
+    "neon",
+    "--texture",
+    "scanlines",
+    "--plate",
+    "--cut-corners"
+);
+preset!(
+    seeded_noise,
+    "PIXBAN",
+    "-p",
+    "forest",
+    "--texture",
+    "noise",
+    "--seed",
+    "7",
+    "--outline",
+    "1",
+    "--outline-conn",
+    "4"
+);
+preset!(
+    centered_lines_in_slim,
+    "Pixel\\nBanner",
+    "-f",
+    "slim",
+    "--align",
+    "center",
+    "--line-gap",
+    "2",
+    "-p",
+    "gold",
+    "--shadow",
+    "1,1"
+);
+preset!(
+    letter_colors,
+    "PIXBAN",
+    "--letter-colors",
+    "#ff0066,#ffcc00,#33ccff",
+    "--outline",
+    "1",
+    "--spacing",
+    "1"
+);
+preset!(
+    cyrillic_extended_palette,
+    "Привет",
+    "-f",
+    "slim",
+    "-p",
+    "pico8-warm",
+    "--shadow",
+    "1,1",
+    "--padding",
+    "1"
+);

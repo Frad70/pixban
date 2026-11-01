@@ -1,0 +1,18 @@
+---
+source: crates/pixban-cli/tests/snapshots.rs
+expression: "svg(&\n[\"PIXBAN\", \"-p\", \"ocean\", \"--outline\", \"1\", \"--extrude\", \"4\", \"--scale\", \"4\"])"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="208" height="52" viewBox="0 0 52 13" shape-rendering="crispEdges" role="img">
+<title>PIXBAN</title>
+<path fill="#061630" d="M0 0h7v1h-7zM8 0h23v1h-23zM33 0h6v1h-6zM40 0h8v1h-8zM0 1h1v7h-1zM6 1h3v1h-3zM15 1h2v1h-2zM19 1h2v2h-2zM23 1h2v2h-2zM30 1h4v1h-4zM38 1h3v1h-3zM43 1h2v1h-2zM47 1h1v7h-1zM3 2h2v2h-2zM7 2h4v1h-4zM13 2h4v1h-4zM27 2h2v2h-2zM31 2h2v2h-2zM35 2h2v2h-2zM39 2h2v6h-2zM44 2h1v1h-1zM7 3h1v1h-1zM10 3h1v3h-1zM13 3h1v3h-1zM16 3h2v1h-2zM22 3h3v1h-3zM6 4h2v1h-2zM17 4h2v1h-2zM21 4h2v1h-2zM24 4h1v1h-1zM30 4h3v1h-3zM43 4h1v1h-1zM51 4h1v8h-1zM3 5h4v1h-4zM16 5h2v1h-2zM22 5h3v1h-3zM27 5h2v2h-2zM31 5h2v2h-2zM35 5h2v3h-2zM43 5h2v3h-2zM3 6h1v2h-1zM8 6h3v1h-3zM13 6h4v1h-4zM19 6h2v2h-2zM23 6h2v2h-2zM8 7h1v1h-1zM15 7h2v1h-2zM30 7h3v1h-3zM0 8h4v1h-4zM8 8h23v1h-23zM32 8h16v1h-16zM7 9h2v1h-2zM7 10h1v2h-1zM34 11h1v1h-1zM4 12h4v1h-4zM12 12h23v1h-23zM36 12h16v1h-16z"/>
+<path fill="#d6f5f2" d="M1 1h5v1h-5zM9 1h6v1h-6zM17 1h2v1h-2zM21 1h2v1h-2zM25 1h5v1h-5zM34 1h4v1h-4zM41 1h2v1h-2zM45 1h2v1h-2z"/>
+<path fill="#0a2856" d="M48 1h1v8h-1zM8 3h2v1h-2zM14 3h2v1h-2zM8 4h1v1h-1zM14 4h1v2h-1zM23 4h1v1h-1zM7 5h2v1h-2zM4 6h4v1h-4zM4 7h1v2h-1zM31 8h1v1h-1zM1 9h4v1h-4zM9 9h23v1h-23zM33 9h16v1h-16z"/>
+<path fill="#8fe3e1" d="M1 2h2v1h-2zM5 2h2v1h-2zM11 2h2v1h-2zM17 2h2v1h-2zM21 2h2v1h-2zM25 2h2v1h-2zM29 2h2v1h-2zM33 2h2v1h-2zM37 2h2v1h-2zM41 2h3v1h-3zM45 2h2v1h-2z"/>
+<path fill="#082046" d="M49 2h1v8h-1zM9 4h1v2h-1zM15 4h2v1h-2zM15 5h1v1h-1zM5 7h3v1h-3zM5 8h1v2h-1zM32 9h1v1h-1zM2 10h4v1h-4zM10 10h23v1h-23zM34 10h16v1h-16z"/>
+<path fill="#4fc8d6" d="M1 3h2v1h-2zM5 3h2v1h-2zM11 3h2v1h-2zM18 3h4v1h-4zM25 3h2v1h-2zM29 3h2v1h-2zM33 3h2v1h-2zM37 3h2v1h-2zM41 3h6v1h-6z"/>
+<path fill="#071935" d="M50 3h1v8h-1zM6 8h2v1h-2zM6 9h1v2h-1zM33 10h1v1h-1zM3 11h4v1h-4zM11 11h23v1h-23zM35 11h16v1h-16z"/>
+<path fill="#2aa3c9" d="M1 4h5v1h-5zM11 4h2v1h-2zM19 4h2v1h-2zM25 4h5v1h-5zM33 4h6v1h-6zM41 4h2v1h-2zM44 4h3v1h-3z"/>
+<path fill="#1e78b4" d="M1 5h2v1h-2zM11 5h2v1h-2zM18 5h4v1h-4zM25 5h2v1h-2zM29 5h2v1h-2zM33 5h2v1h-2zM37 5h2v1h-2zM41 5h2v1h-2zM45 5h2v1h-2z"/>
+<path fill="#15508f" d="M1 6h2v1h-2zM11 6h2v1h-2zM17 6h2v1h-2zM21 6h2v1h-2zM25 6h2v1h-2zM29 6h2v1h-2zM33 6h2v1h-2zM37 6h2v1h-2zM41 6h2v1h-2zM45 6h2v1h-2z"/>
+<path fill="#0c2f66" d="M1 7h2v1h-2zM9 7h6v1h-6zM17 7h2v1h-2zM21 7h2v1h-2zM25 7h5v1h-5zM33 7h2v1h-2zM37 7h2v1h-2zM41 7h2v1h-2zM45 7h2v1h-2z"/>
+</svg>

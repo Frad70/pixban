@@ -1,0 +1,11 @@
+---
+source: crates/pixban-cli/tests/snapshots.rs
+expression: "svg(&\n[\"PIXBAN\", \"--letter-colors\", \"#ff0066,#ffcc00,#33ccff\", \"--outline\", \"1\",\n\"--spacing\", \"1\"])"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="344" height="72" viewBox="0 0 43 9" shape-rendering="crispEdges" role="img">
+<title>PIXBAN</title>
+<path fill="#382823" d="M0 0h28v1h-28zM29 0h14v1h-14zM0 1h1v7h-1zM6 1h2v1h-2zM14 1h1v1h-1zM17 1h2v2h-2zM21 1h1v2h-1zM27 1h3v1h-3zM34 1h2v1h-2zM38 1h2v1h-2zM42 1h1v7h-1zM3 2h2v2h-2zM7 2h3v1h-3zM12 2h3v1h-3zM24 2h2v2h-2zM28 2h1v2h-1zM31 2h2v2h-2zM35 2h1v6h-1zM39 2h1v1h-1zM7 3h1v1h-1zM9 3h1v3h-1zM12 3h1v3h-1zM14 3h2v1h-2zM20 3h2v1h-2zM6 4h2v1h-2zM15 4h2v1h-2zM19 4h3v1h-3zM27 4h2v1h-2zM38 4h1v1h-1zM3 5h4v1h-4zM14 5h2v1h-2zM20 5h2v1h-2zM24 5h2v2h-2zM28 5h1v2h-1zM31 5h2v3h-2zM38 5h2v3h-2zM3 6h1v2h-1zM7 6h3v1h-3zM12 6h3v1h-3zM17 6h2v2h-2zM21 6h1v2h-1zM7 7h1v1h-1zM14 7h1v1h-1zM27 7h2v1h-2zM0 8h4v1h-4zM7 8h36v1h-36z"/>
+<path fill="#ff0066" d="M1 1h5v1h-5zM22 1h5v1h-5zM1 2h2v2h-2zM5 2h2v2h-2zM22 2h2v2h-2zM26 2h2v2h-2zM1 4h5v1h-5zM22 4h5v1h-5zM1 5h2v3h-2zM22 5h2v2h-2zM26 5h2v2h-2zM22 7h5v1h-5z"/>
+<path fill="#ffcc00" d="M8 1h6v1h-6zM30 1h4v1h-4zM10 2h2v5h-2zM29 2h2v2h-2zM33 2h2v2h-2zM29 4h6v1h-6zM29 5h2v3h-2zM33 5h2v3h-2zM8 7h6v1h-6z"/>
+<path fill="#33ccff" d="M15 1h2v2h-2zM19 1h2v2h-2zM36 1h2v1h-2zM40 1h2v2h-2zM36 2h3v1h-3zM16 3h4v1h-4zM36 3h6v1h-6zM17 4h2v1h-2zM36 4h2v4h-2zM39 4h3v1h-3zM16 5h4v1h-4zM40 5h2v3h-2zM15 6h2v2h-2zM19 6h2v2h-2z"/>
+</svg>
