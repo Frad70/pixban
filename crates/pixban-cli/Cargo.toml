@@ -1,0 +1,21 @@
+[package]
+name = "pixban-cli"
+description = "Command line tool that turns text into pixel-art logos"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "pixban"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+pixban-core = { version = "0.1.0", path = "../pixban-core" }
+pixban-fonts = { version = "0.1.0", path = "../pixban-fonts" }
+toml = "1.1.8"
+
+[dev-dependencies]
+png = "0.18.1"
+roxmltree = "0.21.2"

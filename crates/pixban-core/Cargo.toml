@@ -1,0 +1,15 @@
+[package]
+name = "pixban-core"
+description = "Pixel-art text rendering core: fonts, layout, palettes, SVG and PNG export"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+png = "0.18.1"
+serde = { version = "1.0.229", features = ["derive"] }
+
+[dev-dependencies]
+proptest = "1.12.0"
+roxmltree = "0.21.2"

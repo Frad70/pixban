@@ -1,0 +1,10 @@
+pub const MAX_TEXT_CHARS: usize = 1000;
+pub const MAX_GRID_SIDE: u32 = 16384;
+pub const MAX_SCALE: u32 = 64;
+pub const MAX_SHADOW_OFFSET: i32 = 32;
+pub const MAX_OUTPUT_SIDE: u64 = 32768;
+pub const MAX_OUTPUT_PIXELS: u64 = 1 << 25;
+pub const MAX_FONT_HEIGHT: u32 = 64;
+pub const MAX_GLYPH_WIDTH: u32 = 64;
+pub const MAX_SPACING: u32 = 32;
+pub const MAX_KERN: i32 = 16;

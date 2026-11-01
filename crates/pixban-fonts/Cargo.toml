@@ -1,0 +1,10 @@
+[package]
+name = "pixban-fonts"
+description = "Embedded pixel fonts for pixban"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+pixban-core = { version = "0.1.0", path = "../pixban-core" }
