@@ -3,8 +3,12 @@ name = "pixban-fonts"
 description = "Embedded pixel fonts for pixban"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license = "MIT AND OFL-1.1"
 repository.workspace = true
 
 [dependencies]
+flate2 = "1.1.10"
 pixban-core = { version = "0.1.0", path = "../pixban-core" }
+
+[dev-dependencies]
+proptest = "1.12.0"

@@ -11,24 +11,68 @@ pub enum CaseMode {
     Mixed,
 }
 
+/// Where a glyph sits around its pen position and the band.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Cell {
+    /// First bitmap column relative to the pen; negative values reach left of it.
+    pub left: i32,
+    /// Pen movement after the glyph, before the font spacing.
+    pub advance: u32,
+    pub width: u32,
+    /// Extra rows above the band.
+    pub top: u32,
+    /// Extra rows below the baseline.
+    pub bottom: u32,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Glyph {
-    width: u32,
+    cell: Cell,
     height: u32,
     bits: Vec<bool>,
 }
 
 impl Glyph {
-    pub fn width(&self) -> u32 {
-        self.width
+    /// Builds a glyph from `top + band + bottom` rows of `width` cells, row-major.
+    pub fn new(band: u32, cell: Cell, bits: Vec<bool>) -> Option<Glyph> {
+        let height = cell.top.checked_add(band)?.checked_add(cell.bottom)?;
+        if bits.len() as u64 != u64::from(cell.width) * u64::from(height) {
+            return None;
+        }
+        Some(Glyph { cell, height, bits })
     }
 
+    pub fn width(&self) -> u32 {
+        self.cell.width
+    }
+
+    /// Total rows, extra rows included.
     pub fn height(&self) -> u32 {
         self.height
     }
 
+    pub fn advance(&self) -> u32 {
+        self.cell.advance
+    }
+
+    pub fn left(&self) -> i32 {
+        self.cell.left
+    }
+
+    pub fn top(&self) -> u32 {
+        self.cell.top
+    }
+
+    pub fn bottom(&self) -> u32 {
+        self.cell.bottom
+    }
+
     pub fn get(&self, x: u32, y: u32) -> bool {
-        x < self.width && y < self.height && self.bits[(y * self.width + x) as usize]
+        x < self.cell.width && y < self.height && self.bits[(y * self.cell.width + x) as usize]
+    }
+
+    pub fn has_ink(&self) -> bool {
+        self.bits.iter().any(|&b| b)
     }
 
     fn hollow_box(height: u32) -> Glyph {
@@ -41,11 +85,29 @@ impl Glyph {
             }
         }
         Glyph {
-            width,
+            cell: Cell {
+                left: 0,
+                advance: width,
+                width,
+                top: 0,
+                bottom: 0,
+            },
             height,
             bits,
         }
     }
+}
+
+/// Header values shared by the `.pxf` parser and the BDF and PCF importers.
+#[derive(Clone, Debug)]
+pub struct FontMeta {
+    pub name: String,
+    pub height: u32,
+    pub baseline: u32,
+    pub spacing: u32,
+    pub case: CaseMode,
+    pub default_scale: u32,
+    pub max_width: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -56,16 +118,62 @@ pub struct Font {
     spacing: u32,
     case: CaseMode,
     default_scale: u32,
+    max_width: u32,
     glyphs: HashMap<char, Glyph>,
     fallback: Glyph,
     kerning: HashMap<(char, char), i32>,
 }
 
 impl Font {
+    /// Assembles a font; every glyph must have `meta.height` band rows.
+    pub fn new(
+        meta: FontMeta,
+        glyphs: Vec<(char, Glyph)>,
+        fallback: Option<Glyph>,
+        kerning: Vec<((char, char), i32)>,
+    ) -> Result<Font, String> {
+        if meta.name.is_empty() {
+            return Err("font name is empty".to_string());
+        }
+        if !(1..=MAX_FONT_HEIGHT).contains(&meta.height) {
+            return Err(format!(
+                "font is {} rows tall, the limit is {MAX_FONT_HEIGHT}",
+                meta.height
+            ));
+        }
+        let mut map = HashMap::with_capacity(glyphs.len());
+        for (c, g) in glyphs {
+            if g.height() - g.top() - g.bottom() != meta.height {
+                return Err(format!("glyph {c:?} does not have the font band height"));
+            }
+            if map.insert(c, g).is_some() {
+                return Err(format!("duplicate glyph {c:?}"));
+            }
+        }
+        if let Some(fb) = &fallback {
+            if fb.height() - fb.top() - fb.bottom() != meta.height {
+                return Err("fallback glyph does not have the font band height".to_string());
+            }
+        }
+        Ok(Font {
+            name: meta.name,
+            height: meta.height,
+            baseline: meta.baseline,
+            spacing: meta.spacing,
+            case: meta.case,
+            default_scale: meta.default_scale,
+            max_width: meta.max_width,
+            glyphs: map,
+            fallback: fallback.unwrap_or_else(|| Glyph::hollow_box(meta.height)),
+            kerning: kerning.into_iter().collect(),
+        })
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    /// Band height in rows, not counting glyph extra rows.
     pub fn height(&self) -> u32 {
         self.height
     }
@@ -86,6 +194,11 @@ impl Font {
         self.default_scale
     }
 
+    /// Declared maximum glyph width in columns.
+    pub fn max_width(&self) -> u32 {
+        self.max_width
+    }
+
     pub fn glyph(&self, c: char) -> Option<&Glyph> {
         self.glyphs.get(&c)
     }
@@ -96,6 +209,12 @@ impl Font {
 
     pub fn kerning(&self, left: char, right: char) -> i32 {
         self.kerning.get(&(left, right)).copied().unwrap_or(0)
+    }
+
+    pub fn kerning_pairs(&self) -> Vec<((char, char), i32)> {
+        let mut v: Vec<((char, char), i32)> = self.kerning.iter().map(|(k, v)| (*k, *v)).collect();
+        v.sort_unstable();
+        v
     }
 
     pub fn chars(&self) -> Vec<char> {
@@ -174,6 +293,7 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
     let mut spacing = None;
     let mut case = None;
     let mut scale = None;
+    let mut max_width = None;
     let mut kerning: HashMap<(char, char), i32> = HashMap::new();
 
     let mut idx = 0;
@@ -215,6 +335,7 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
             "baseline" => set_once(&mut baseline, key, parse_number::<u32>(ln, key, value)?)?,
             "spacing" => set_once(&mut spacing, key, parse_number::<u32>(ln, key, value)?)?,
             "scale" => set_once(&mut scale, key, parse_number::<u32>(ln, key, value)?)?,
+            "max_width" => set_once(&mut max_width, key, parse_number::<u32>(ln, key, value)?)?,
             "case" => {
                 let mode = match value {
                     "upper" => CaseMode::Upper,
@@ -289,6 +410,16 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
             format!("'spacing' must be at most {MAX_SPACING}"),
         ));
     }
+    let max_width = match max_width {
+        Some(m) if !(1..=MAX_GLYPH_WIDTH).contains(&m.value) => {
+            return Err(err(
+                m.line,
+                format!("'max_width' must be between 1 and {MAX_GLYPH_WIDTH}"),
+            ));
+        }
+        Some(m) => m.value,
+        None => MAX_GLYPH_WIDTH,
+    };
     let default_scale = match scale {
         Some(s) if !(1..=crate::limits::MAX_SCALE).contains(&s.value) => {
             return Err(err(
@@ -301,8 +432,10 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
     };
     let h = height.value;
 
-    let mut glyphs: HashMap<char, Glyph> = HashMap::new();
+    let mut glyphs: Vec<(char, Glyph)> = Vec::new();
     let mut fallback: Option<Glyph> = None;
+    let mut seen: HashMap<char, usize> = HashMap::new();
+    let mut last_total: Option<u32> = None;
 
     while idx < lines.len() {
         let ln = idx + 1;
@@ -313,28 +446,56 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
         }
         let Some(rest) = text.strip_prefix("char:") else {
             if text.chars().all(|c| c == '#' || c == '.') {
-                return Err(err(ln, format!("glyph has more than {h} rows")));
+                return Err(match last_total {
+                    Some(t) => err(ln, format!("glyph has more than {t} rows")),
+                    None => err(ln, "row outside a glyph, expected 'char: X'"),
+                });
             }
             return Err(err(ln, "expected 'char: X'"));
         };
         let key = parse_glyph_name(ln, rest.trim())?;
         let label = rest.trim().to_string();
 
-        let mut rows: Vec<&str> = Vec::with_capacity(h as usize);
-        for k in 0..h {
+        let mut top = None;
+        let mut bottom = None;
+        while let Some(raw) = lines.get(idx) {
+            let Some((extra, value)) = raw.trim().split_once(':') else {
+                break;
+            };
+            let slot = match extra.trim() {
+                "top" => &mut top,
+                "bottom" => &mut bottom,
+                _ => break,
+            };
+            let key = extra.trim();
+            set_once(slot, key, parse_number::<u32>(idx + 1, key, value.trim())?)?;
+            idx += 1;
+        }
+        let top_rows = top.map_or(0, |t: Located<u32>| t.value);
+        let bottom_rows = bottom.map_or(0, |b: Located<u32>| b.value);
+        let total = top_rows + h + bottom_rows;
+        if total > MAX_FONT_HEIGHT {
+            return Err(err(
+                ln,
+                format!("glyph '{label}' has {total} rows, the limit is {MAX_FONT_HEIGHT}"),
+            ));
+        }
+
+        let mut rows: Vec<&str> = Vec::with_capacity(total as usize);
+        for k in 0..total {
             let row_ln = idx + 1;
             let row = lines.get(idx).map(|r| r.trim());
             match row {
                 None | Some("") => {
                     return Err(err(
                         row_ln,
-                        format!("glyph '{label}' has {k} rows, expected {h}"),
+                        format!("glyph '{label}' has {k} rows, expected {total}"),
                     ));
                 }
                 Some(r) if r.starts_with("char:") => {
                     return Err(err(
                         row_ln,
-                        format!("glyph '{label}' has {k} rows, expected {h}"),
+                        format!("glyph '{label}' has {k} rows, expected {total}"),
                     ));
                 }
                 Some(r) => {
@@ -369,11 +530,16 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
             .iter()
             .flat_map(|r| r.chars().map(|c| c == '#'))
             .collect();
-        let glyph = Glyph {
+        let cell = Cell {
+            left: 0,
+            advance: width,
             width,
-            height: h,
-            bits,
+            top: top_rows,
+            bottom: bottom_rows,
         };
+        let glyph = Glyph::new(h, cell, bits)
+            .ok_or_else(|| err(ln, format!("glyph '{label}' has the wrong shape")))?;
+        last_total = Some(total);
         match key {
             None => {
                 if fallback.replace(glyph).is_some() {
@@ -381,22 +547,23 @@ pub fn parse(src: &str) -> Result<Font, ParseError> {
                 }
             }
             Some(c) => {
-                if glyphs.insert(c, glyph).is_some() {
+                if seen.insert(c, ln).is_some() {
                     return Err(err(ln, format!("duplicate glyph '{label}'")));
                 }
+                glyphs.push((c, glyph));
             }
         }
     }
 
-    Ok(Font {
+    let meta = FontMeta {
         name: name.value,
         height: h,
         baseline: baseline.value,
         spacing: spacing.value,
         case: case.value,
         default_scale,
-        glyphs,
-        fallback: fallback.unwrap_or_else(|| Glyph::hollow_box(h)),
-        kerning,
-    })
+        max_width,
+    };
+    let kerning = kerning.into_iter().collect();
+    Font::new(meta, glyphs, fallback, kerning).map_err(|m| err(separator_line, m))
 }

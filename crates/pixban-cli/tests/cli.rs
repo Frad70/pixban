@@ -241,7 +241,10 @@ fn scale_must_be_an_integer() {
 
 #[test]
 fn listing_subcommands() {
-    assert_eq!(ok_stdout(&["fonts"]).lines().collect::<Vec<_>>(), ["block"]);
+    assert_eq!(
+        ok_stdout(&["fonts"]).lines().collect::<Vec<_>>(),
+        ["block", "slim", "tiny", "mega"]
+    );
     let palettes = ok_stdout(&["palettes"]);
     let names: Vec<&str> = palettes.lines().collect();
     assert_eq!(names.len(), 8);

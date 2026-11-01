@@ -175,3 +175,54 @@ fn crlf_and_bom_are_accepted() {
     let src = format!("\u{feff}{}", common::SRC.replace('\n', "\r\n"));
     assert_eq!(font::parse(&src).unwrap().chars().len(), 4);
 }
+
+#[test]
+fn extra_rows_above_and_below_the_band_are_declared_per_glyph() {
+    let src = "name: X\nheight: 2\nbaseline: 2\nspacing: 1\ncase: mixed\n---\n\
+               char: E\ntop: 1\nbottom: 2\n#.#\n...\n##.\n.#.\n.#.\n\
+               char: F\n##\n##\n";
+    let f = font::parse(src).unwrap();
+    let e = f.glyph('E').unwrap();
+    assert_eq!((e.top(), e.bottom(), e.height(), e.width()), (1, 2, 5, 3));
+    assert!(e.get(0, 0) && e.get(2, 0), "top row is the first row");
+    assert!(!e.get(1, 1) && e.get(0, 2), "band starts after top");
+    assert!(e.get(1, 4), "last row is the bottom extra row");
+    let plain = f.glyph('F').unwrap();
+    assert_eq!((plain.top(), plain.bottom(), plain.height()), (0, 0, 2));
+    assert_eq!(f.max_width(), 64, "max_width defaults to the limit");
+}
+
+#[test]
+fn extra_row_declarations_accept_either_order_and_zero() {
+    let src = "name: X\nheight: 1\nbaseline: 1\nspacing: 1\ncase: mixed\n---\n\
+               char: A\nbottom: 1\ntop: 0\n#\n.\n";
+    let f = font::parse(src).unwrap();
+    let a = f.glyph('A').unwrap();
+    assert_eq!((a.top(), a.bottom(), a.height()), (0, 1, 2));
+}
+
+#[test]
+fn extra_row_errors_keep_their_line_numbers() {
+    let bad_number = "name: X\nheight: 1\nbaseline: 1\nspacing: 1\ncase: mixed\n---\n\
+                      char: A\ntop: many\n#\n";
+    fails_at(bad_number, 8, "'top' needs a number");
+    let twice = "name: X\nheight: 1\nbaseline: 1\nspacing: 1\ncase: mixed\n---\n\
+                 char: A\ntop: 1\ntop: 1\n##\n#\n";
+    fails_at(twice, 9, "duplicate 'top'");
+    let short = "name: X\nheight: 1\nbaseline: 1\nspacing: 1\ncase: mixed\n---\n\
+                 char: A\ntop: 2\n#\n";
+    fails_at(short, 10, "has 1 rows, expected 3");
+    let too_tall = "name: X\nheight: 60\nbaseline: 1\nspacing: 1\ncase: mixed\n---\n\
+                    char: A\ntop: 5\n";
+    fails_at(too_tall, 7, "has 65 rows, the limit is 64");
+}
+
+#[test]
+fn max_width_header_is_optional_and_checked() {
+    let src =
+        "name: X\nheight: 1\nbaseline: 1\nspacing: 1\ncase: mixed\nmax_width: 9\n---\nchar: A\n#\n";
+    assert_eq!(font::parse(src).unwrap().max_width(), 9);
+    let zero =
+        "name: X\nheight: 1\nbaseline: 1\nspacing: 1\ncase: mixed\nmax_width: 0\n---\nchar: A\n#\n";
+    fails_at(zero, 6, "'max_width' must be between 1 and 64");
+}

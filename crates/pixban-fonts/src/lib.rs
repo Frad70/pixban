@@ -1,6 +1,17 @@
 use pixban_core::{font, Font};
 
-const BUILTIN: &[(&str, &str)] = &[("block", include_str!("../fonts/block.pxf"))];
+mod bdf;
+mod import;
+mod pcf;
+
+pub use import::{load_bytes, load_file, LoadError};
+
+const BUILTIN: &[(&str, &str)] = &[
+    ("block", include_str!("../fonts/block.pxf")),
+    ("slim", include_str!("../fonts/slim.pxf")),
+    ("tiny", include_str!("../fonts/tiny.pxf")),
+    ("mega", include_str!("../fonts/mega.pxf")),
+];
 
 pub fn names() -> impl Iterator<Item = &'static str> {
     BUILTIN.iter().map(|(name, _)| *name)
@@ -37,7 +48,7 @@ mod tests {
         for c in "BRAZIE".chars() {
             assert_eq!(font.glyph(c).unwrap().width(), 6, "glyph {c}");
         }
-        assert!(font.glyph('Q').is_none());
+        assert!(font.glyph('\u{20AC}').is_none());
     }
 
     #[test]

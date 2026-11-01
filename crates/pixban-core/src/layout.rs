@@ -11,6 +11,8 @@ pub struct LayoutOptions {}
 pub struct PlacedGlyph<'f> {
     pub ch: char,
     pub x: u32,
+    /// Row of the glyph's first row, measured from the top of the layout.
+    pub y: u32,
     pub glyph: &'f Glyph,
     pub is_fallback: bool,
 }
@@ -25,6 +27,7 @@ pub struct LayoutLine<'f> {
 #[derive(Clone, Debug)]
 pub struct Layout<'f> {
     pub width: u32,
+    /// Rows used by the glyphs in this text: the band plus the extra rows that are in use.
     pub height: u32,
     pub lines: Vec<LayoutLine<'f>>,
     pub missing: Vec<char>,
@@ -70,8 +73,8 @@ pub fn layout<'f>(
         if let Some(p) = prev {
             pen += i64::from(font.kerning(p, c));
         }
-        placed.push((pen, c, glyph, is_fallback));
-        pen += i64::from(glyph.width()) + i64::from(font.spacing());
+        placed.push((pen + i64::from(glyph.left()), c, glyph, is_fallback));
+        pen += i64::from(glyph.advance()) + i64::from(font.spacing());
         prev = Some(c);
     }
 
@@ -82,10 +85,15 @@ pub fn layout<'f>(
         .max()
         .unwrap_or(0);
     let width = (max_x - min_x) as u64;
+
+    let top = placed.iter().map(|p| p.2.top()).max().unwrap_or(0);
+    let bottom = placed.iter().map(|p| p.2.bottom()).max().unwrap_or(0);
+    let height = top + font.height() + bottom;
+
     if width > u64::from(MAX_GRID_SIDE) {
         return Err(Error::CanvasTooLarge {
             width,
-            height: u64::from(font.height()),
+            height: u64::from(height),
         });
     }
     let width = width as u32;
@@ -95,6 +103,7 @@ pub fn layout<'f>(
         .map(|(x, ch, glyph, is_fallback)| PlacedGlyph {
             ch,
             x: (x - min_x) as u32,
+            y: top - glyph.top(),
             glyph,
             is_fallback,
         })
@@ -102,7 +111,7 @@ pub fn layout<'f>(
 
     Ok(Layout {
         width,
-        height: font.height(),
+        height,
         lines: vec![LayoutLine {
             y: 0,
             width,

@@ -385,7 +385,9 @@ dependencies = [
 name = "pixban-fonts"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "pixban-core",
+ "proptest",
 ]
 
 [[package]]

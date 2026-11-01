@@ -1,0 +1,27 @@
+# Minimum covered glyph counts per built-in font and script.
+# The coverage test fails if a font covers fewer characters than listed here.
+# Format: font script-key covered-count
+block latin-upper 26
+block latin-lower 0
+block digits 10
+block cyrillic-upper 33
+block cyrillic-lower 0
+block punctuation 38
+slim latin-upper 26
+slim latin-lower 26
+slim digits 10
+slim cyrillic-upper 33
+slim cyrillic-lower 33
+slim punctuation 38
+tiny latin-upper 26
+tiny latin-lower 0
+tiny digits 10
+tiny cyrillic-upper 33
+tiny cyrillic-lower 0
+tiny punctuation 38
+mega latin-upper 26
+mega latin-lower 0
+mega digits 10
+mega cyrillic-upper 33
+mega cyrillic-lower 0
+mega punctuation 38

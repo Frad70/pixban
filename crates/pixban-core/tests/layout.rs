@@ -76,3 +76,27 @@ fn text_wider_than_the_canvas_limit_is_an_error() {
         Error::CanvasTooLarge { .. }
     ));
 }
+
+#[test]
+fn line_height_is_the_union_of_extra_rows_actually_used() {
+    let src = "name: X\nheight: 3\nbaseline: 3\nspacing: 1\ncase: mixed\n---\n\
+               char: A\n##\n##\n##\n\
+               char: E\ntop: 1\n##\n##\n##\n##\n\
+               char: g\nbottom: 2\n##\n##\n##\n##\n##\n";
+    let f = pixban_core::font::parse(src).unwrap();
+    let plain = layout(&f, "AA", &LayoutOptions::default()).unwrap();
+    assert_eq!(plain.height, 3);
+    let raised = layout(&f, "AE", &LayoutOptions::default()).unwrap();
+    assert_eq!(raised.height, 4);
+    assert_eq!(
+        raised.lines[0].glyphs[0].y, 1,
+        "band glyph starts one row lower"
+    );
+    assert_eq!(
+        raised.lines[0].glyphs[1].y, 0,
+        "raised glyph starts at the top"
+    );
+    let both = layout(&f, "EgA", &LayoutOptions::default()).unwrap();
+    assert_eq!(both.height, 6);
+    assert_eq!(both.lines[0].glyphs[2].y, 1);
+}

@@ -18,8 +18,12 @@ pub struct Cli {
     pub text: Option<String>,
 
     /// Font name (see `pixban fonts`)
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "font_file")]
     pub font: Option<String>,
+
+    /// Font file: .pxf, BDF or PCF, optionally gzipped; replaces -f
+    #[arg(long, value_name = "FILE")]
+    pub font_file: Option<PathBuf>,
 
     /// Palette name (see `pixban palettes`)
     #[arg(short, long)]
@@ -72,6 +76,26 @@ pub enum Command {
     Fonts,
     /// List built-in palettes
     Palettes,
+    /// Check a font file or a built-in font name and print glyph coverage
+    LintFont {
+        /// Built-in font name or path to a .pxf file
+        target: String,
+    },
+    /// Render a specimen sheet of a font as PNG
+    Specimen {
+        /// Font name (see `pixban fonts`), default block
+        #[arg(short, long, conflicts_with = "font_file")]
+        font: Option<String>,
+        /// Font file: .pxf, BDF or PCF, optionally gzipped
+        #[arg(long, value_name = "FILE")]
+        font_file: Option<PathBuf>,
+        /// Output PNG file
+        #[arg(short, long, value_name = "FILE")]
+        output: PathBuf,
+        /// Pixels per cell (default is the font's own scale)
+        #[arg(long, value_name = "N")]
+        scale: Option<u32>,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]

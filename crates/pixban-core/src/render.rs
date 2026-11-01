@@ -15,7 +15,7 @@ pub struct Grid {
 }
 
 impl Grid {
-    fn new(width: u32, height: u32, background: Option<Rgb>) -> Grid {
+    pub(crate) fn new(width: u32, height: u32, background: Option<Rgb>) -> Grid {
         let fill = background.map_or(Rgba::TRANSPARENT, Rgba::from);
         Grid {
             width,
@@ -46,7 +46,7 @@ impl Grid {
         &self.cells[y as usize * w..(y as usize + 1) * w]
     }
 
-    fn set(&mut self, x: u32, y: u32, c: Rgb) {
+    pub(crate) fn set(&mut self, x: u32, y: u32, c: Rgb) {
         self.cells[y as usize * self.width as usize + x as usize] = c.into();
     }
 }
@@ -100,7 +100,7 @@ fn mask_of(layout: &Layout<'_>) -> Vec<bool> {
             for gy in 0..p.glyph.height() {
                 for gx in 0..p.glyph.width() {
                     if p.glyph.get(gx, gy) {
-                        mask[(line.y + gy) as usize * w + (p.x + gx) as usize] = true;
+                        mask[(line.y + p.y + gy) as usize * w + (p.x + gx) as usize] = true;
                     }
                 }
             }
