@@ -19,3 +19,17 @@ pub const MAX_LETTER_COLORS: usize = 64;
 pub const MIN_PALETTE_STOPS: usize = 2;
 pub const MAX_PALETTE_STOPS: usize = 16;
 pub const MAX_TEXTURE_PERIOD: u32 = 16;
+pub const MIN_FRAMES: u32 = 2;
+pub const MAX_FRAMES: u32 = 120;
+pub const MIN_FRAME_MS: u32 = 20;
+pub const MAX_FRAME_MS: u32 = 2000;
+/// Frames times canvas cells held in memory at once.
+pub const MAX_ANIM_CELLS: u64 = 1 << 22;
+/// Frames times output pixels the encoders have to walk.
+pub const MAX_ANIM_PIXELS: u64 = 1 << 28;
+pub const MAX_FLAME: u32 = 32;
+pub const MAX_AMPLITUDE: u32 = 16;
+pub const MAX_BAND: u32 = 32;
+pub const MAX_COUNT: u32 = 64;
+pub const MIN_HUES: u32 = 3;
+pub const MAX_HUES: u32 = 36;

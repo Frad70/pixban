@@ -50,6 +50,11 @@ pub enum Error {
         min: i64,
         max: i64,
     },
+    AnimationTooLarge {
+        frames: u32,
+        cells: u64,
+        pixels: u64,
+    },
     InvalidPalette(String),
     InvalidSetting(String),
     Encode(String),
@@ -92,6 +97,16 @@ impl fmt::Display for Error {
                 min,
                 max,
             } => write!(f, "{what} {value} is out of range, use {min} to {max}"),
+            Error::AnimationTooLarge {
+                frames,
+                cells,
+                pixels,
+            } => write!(
+                f,
+                "{frames} frames of {cells} cells ({pixels} pixels) each exceed the animation limits of {} cells and {} pixels in total; use fewer frames, a smaller scale or shorter text",
+                crate::limits::MAX_ANIM_CELLS,
+                crate::limits::MAX_ANIM_PIXELS
+            ),
             Error::InvalidPalette(msg) => write!(f, "invalid palette: {msg}"),
             Error::InvalidSetting(msg) => f.write_str(msg),
             Error::Encode(msg) => write!(f, "encoding failed: {msg}"),

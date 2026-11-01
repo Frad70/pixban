@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use pixban_core::{
-    Align, Bevel, Connectivity, Direction, Dither, Extrude, Outline, Plate, Rgb, Shadow, Spec,
-    Texture, TextureKind,
+    Align, Anim, AnimKind, Bevel, Connectivity, Direction, Dither, Extrude, Outline, Plate, Rgb,
+    Shadow, Spec, Texture, TextureKind,
 };
 
 #[derive(Parser)]
@@ -164,11 +164,48 @@ pub struct Cli {
     #[arg(long, value_name = "N", help_heading = "Layout")]
     pub scale: Option<u32>,
 
-    /// Output file; the extension picks the format. Default is SVG on stdout
+    /// Animation: the output becomes an animated SVG, GIF or APNG
+    #[arg(long, value_enum, help_heading = "Animation")]
+    pub anim: Option<AnimArg>,
+
+    /// Frames in one loop, 2 to 120 (default depends on the animation)
+    #[arg(long, value_name = "N", help_heading = "Animation")]
+    pub frames: Option<u32>,
+
+    /// Milliseconds per frame, 20 to 2000 (default depends on the animation)
+    #[arg(long, value_name = "MS", help_heading = "Animation")]
+    pub frame_ms: Option<u32>,
+
+    /// Burn: flame height in cells, 1 to 32
+    #[arg(long, value_name = "N", help_heading = "Animation")]
+    pub flame: Option<u32>,
+
+    /// Wave: how far letters bob; glitch: longest slice shift; in cells, 1 to 16
+    #[arg(long, value_name = "N", help_heading = "Animation")]
+    pub amplitude: Option<u32>,
+
+    /// Shimmer: width of the light band in cells, 1 to 32
+    #[arg(long, value_name = "N", help_heading = "Animation")]
+    pub band: Option<u32>,
+
+    /// Glitch: bursts per loop; sparkle: twinkles per loop; 1 to 64
+    #[arg(long, value_name = "N", help_heading = "Animation")]
+    pub count: Option<u32>,
+
+    /// Rainbow: distinct hues in one turn, 3 to 36 (default 12)
+    #[arg(long, value_name = "N", help_heading = "Animation")]
+    pub hues: Option<u32>,
+
+    /// Also write every frame as a numbered PNG into this directory
+    #[arg(long, value_name = "DIR", help_heading = "Animation")]
+    pub frames_dir: Option<PathBuf>,
+
+    /// Output file; the extension picks the format (.svg, .png, .gif, .apng). Default is SVG
+    /// on stdout
     #[arg(short, long, value_name = "FILE", help_heading = "Output")]
     pub output: Option<PathBuf>,
 
-    /// Output format, overrides the file extension
+    /// Output format, overrides the file extension; works on stdout too
     #[arg(long, value_enum, help_heading = "Output")]
     pub format: Option<FormatArg>,
 
@@ -250,15 +287,30 @@ pub enum AlignArg {
 }
 
 #[derive(Clone, Copy, ValueEnum)]
+pub enum AnimArg {
+    Burn,
+    Shimmer,
+    Wave,
+    Type,
+    Glitch,
+    Rainbow,
+    Sparkle,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
 pub enum FormatArg {
     Svg,
     Png,
+    Gif,
+    Apng,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Format {
     Svg,
     Png,
+    Gif,
+    Apng,
 }
 
 fn parse_offset(s: &str) -> Result<(i32, i32), String> {
@@ -416,33 +468,84 @@ impl Cli {
         if let Some(scale) = self.scale {
             spec.scale = Some(scale);
         }
+
+        if let Some(a) = self.anim {
+            let kind = match a {
+                AnimArg::Burn => AnimKind::Burn,
+                AnimArg::Shimmer => AnimKind::Shimmer,
+                AnimArg::Wave => AnimKind::Wave,
+                AnimArg::Type => AnimKind::Type,
+                AnimArg::Glitch => AnimKind::Glitch,
+                AnimArg::Rainbow => AnimKind::Rainbow,
+                AnimArg::Sparkle => AnimKind::Sparkle,
+            };
+            spec.anim.get_or_insert_with(|| Anim::new(kind)).kind = kind;
+        }
+        let anim_hint = "an animation, add --anim burn|shimmer|wave|type|glitch|rainbow|sparkle";
+        if let Some(v) = self.frames {
+            need(&mut spec.anim, "--frames", anim_hint)?.frames = Some(v);
+        }
+        if let Some(v) = self.frame_ms {
+            need(&mut spec.anim, "--frame-ms", anim_hint)?.frame_ms = Some(v);
+        }
+        if let Some(v) = self.flame {
+            need(&mut spec.anim, "--flame", anim_hint)?.flame = Some(v);
+        }
+        if let Some(v) = self.amplitude {
+            need(&mut spec.anim, "--amplitude", anim_hint)?.amplitude = Some(v);
+        }
+        if let Some(v) = self.band {
+            need(&mut spec.anim, "--band", anim_hint)?.band = Some(v);
+        }
+        if let Some(v) = self.count {
+            need(&mut spec.anim, "--count", anim_hint)?.count = Some(v);
+        }
+        if let Some(v) = self.hues {
+            need(&mut spec.anim, "--hues", anim_hint)?.hues = Some(v);
+        }
+        if self.frames_dir.is_some() && spec.anim.is_none() {
+            return Err(format!("--frames-dir needs {anim_hint}"));
+        }
         Ok(())
     }
 
-    pub fn format(&self) -> Result<Format, String> {
-        if let Some(f) = self.format {
-            return Ok(match f {
-                FormatArg::Svg => Format::Svg,
-                FormatArg::Png => Format::Png,
-            });
-        }
-        match &self.output {
-            Some(path) if path.as_os_str() != "-" => {
-                match path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .map(str::to_ascii_lowercase)
-                    .as_deref()
-                {
-                    Some("svg") => Ok(Format::Svg),
-                    Some("png") => Ok(Format::Png),
-                    _ => Err(format!(
-                        "cannot tell the format from '{}', use a .svg or .png name or --format",
-                        path.display()
-                    )),
+    /// Output format. An animated PNG is what a PNG request means when an animation is set.
+    pub fn format(&self, animated: bool) -> Result<Format, String> {
+        let picked = match self.format {
+            Some(FormatArg::Svg) => Format::Svg,
+            Some(FormatArg::Png) => Format::Png,
+            Some(FormatArg::Gif) => Format::Gif,
+            Some(FormatArg::Apng) => Format::Apng,
+            None => match &self.output {
+                Some(path) if path.as_os_str() != "-" => {
+                    match path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .map(str::to_ascii_lowercase)
+                        .as_deref()
+                    {
+                        Some("svg") => Format::Svg,
+                        Some("png") => Format::Png,
+                        Some("gif") => Format::Gif,
+                        Some("apng") => Format::Apng,
+                        _ => {
+                            return Err(format!(
+                                "cannot tell the format from '{}', use a .svg, .png, .gif or .apng name or --format",
+                                path.display()
+                            ))
+                        }
+                    }
                 }
-            }
-            _ => Ok(Format::Svg),
+                _ => Format::Svg,
+            },
+        };
+        match (picked, animated) {
+            (Format::Png, true) => Ok(Format::Apng),
+            (Format::Gif | Format::Apng, false) => Err(
+                "GIF and APNG need an animation, add --anim burn|shimmer|wave|type|glitch|rainbow|sparkle"
+                    .to_string(),
+            ),
+            _ => Ok(picked),
         }
     }
 }

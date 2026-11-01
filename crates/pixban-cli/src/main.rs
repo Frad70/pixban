@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use clap::Parser;
-use pixban_core::{lint, palette, render, Font, Spec};
+use pixban_core::{lint, palette, render, render_animation, Font, Spec};
 
 use args::{Cli, Command, Format};
 
@@ -166,19 +166,39 @@ fn run(cli: Cli) -> Result<(), String> {
         return Ok(());
     }
 
-    let rendered = render(&spec, &font).map_err(|e| e.to_string())?;
-    if !rendered.missing.is_empty() {
-        let shown: Vec<String> = rendered
-            .missing
-            .iter()
-            .take(8)
-            .map(|c| format!("'{c}'"))
-            .collect();
-        let more = if rendered.missing.len() > 8 {
-            ", ..."
-        } else {
-            ""
+    let animated = spec.anim.is_some();
+    let format = cli.format(animated)?;
+    let (bytes, missing) = if animated {
+        let anim = render_animation(&spec, &font).map_err(|e| e.to_string())?;
+        if let Some(dir) = &cli.frames_dir {
+            write_frames(&anim, dir)?;
+        }
+        let bytes = match format {
+            Format::Svg => anim.to_svg().into_bytes(),
+            Format::Gif => {
+                if anim.gif_frame_ms() != anim.frame_ms() {
+                    eprintln!(
+                        "warning: frame time {} ms is stored as {} ms in a GIF, which counts in steps of 10 ms and plays nothing faster than 20 ms",
+                        anim.frame_ms(),
+                        anim.gif_frame_ms()
+                    );
+                }
+                anim.to_gif().map_err(|e| e.to_string())?
+            }
+            Format::Png | Format::Apng => anim.to_apng().map_err(|e| e.to_string())?,
         };
+        (bytes, anim.missing().to_vec())
+    } else {
+        let rendered = render(&spec, &font).map_err(|e| e.to_string())?;
+        let bytes = match format {
+            Format::Svg => rendered.to_svg().into_bytes(),
+            _ => rendered.to_png().map_err(|e| e.to_string())?,
+        };
+        (bytes, rendered.missing)
+    };
+    if !missing.is_empty() {
+        let shown: Vec<String> = missing.iter().take(8).map(|c| format!("'{c}'")).collect();
+        let more = if missing.len() > 8 { ", ..." } else { "" };
         eprintln!(
             "warning: font '{}' has no glyph for {}{}; drawn as the fallback glyph",
             font.name(),
@@ -187,23 +207,41 @@ fn run(cli: Cli) -> Result<(), String> {
         );
     }
 
-    let format = cli.format()?;
-    let bytes = match format {
-        Format::Svg => rendered.to_svg().into_bytes(),
-        Format::Png => rendered.to_png().map_err(|e| e.to_string())?,
-    };
+    if cli.frames_dir.is_some() && cli.output.is_none() && cli.format.is_none() {
+        return Ok(());
+    }
     match &cli.output {
         Some(path) if path.as_os_str() != "-" => std::fs::write(path, &bytes)
             .map_err(|e| format!("cannot write {}: {e}", path.display())),
         _ => {
-            if format == Format::Png && std::io::stdout().is_terminal() {
-                return Err("refusing to write PNG data to a terminal; use -o FILE".to_string());
+            if format != Format::Svg && std::io::stdout().is_terminal() {
+                return Err(
+                    "refusing to write binary image data to a terminal; use -o FILE".to_string(),
+                );
             }
             std::io::stdout()
                 .write_all(&bytes)
                 .map_err(|e| e.to_string())
         }
     }
+}
+
+fn write_frames(anim: &pixban_core::Animated, dir: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+    let digits = anim.frames().len().to_string().len().max(3);
+    for i in 0..anim.frames().len() {
+        let path = dir.join(format!("frame-{i:0digits$}.png"));
+        let bytes = anim.frame_png(i).map_err(|e| e.to_string())?;
+        std::fs::write(&path, bytes)
+            .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+    }
+    let (w, h) = anim.pixel_size();
+    println!(
+        "{}: {} frames of {w}x{h} pixels",
+        dir.display(),
+        anim.frames().len()
+    );
+    Ok(())
 }
 
 fn main() -> ExitCode {

@@ -7,7 +7,7 @@ use crate::color::{Rgb, Rgba};
 use crate::effects::{self, Mask, PlateCell};
 use crate::error::Error;
 use crate::font::Font;
-use crate::layout::{layout, Layout, LayoutOptions};
+use crate::layout::{layout, LayoutOptions};
 use crate::limits::{MAX_GRID_SIDE, MAX_OUTPUT_PIXELS, MAX_OUTPUT_SIDE};
 use crate::palette::{self, stop_index};
 use crate::spec::{Direction, Dither, Spec, Texture};
@@ -57,6 +57,54 @@ impl Grid {
 
     pub(crate) fn set(&mut self, x: u32, y: u32, c: Rgb) {
         self.cells[y as usize * self.width as usize + x as usize] = c.into();
+    }
+
+    pub(crate) fn set_cell(&mut self, x: u32, y: u32, c: Rgba) {
+        self.cells[y as usize * self.width as usize + x as usize] = c;
+    }
+
+    /// A transparent grid of the same size, without a background color.
+    pub(crate) fn blank_like(&self) -> Grid {
+        Grid::new(self.width, self.height, None)
+    }
+
+    /// Paints every opaque cell of `top` over this grid.
+    pub(crate) fn overlay(&mut self, top: &Grid) {
+        for (cell, over) in self.cells.iter_mut().zip(&top.cells) {
+            if !over.is_transparent() {
+                *cell = *over;
+            }
+        }
+    }
+
+    /// Like `overlay`, with `top` moved by (dx, dy); cells moved off the grid are dropped.
+    pub(crate) fn overlay_shifted(&mut self, top: &Grid, dx: i32, dy: i32) {
+        for y in 0..top.height {
+            for x in 0..top.width {
+                let cell = top.get(x, y);
+                let (nx, ny) = (i64::from(x) + i64::from(dx), i64::from(y) + i64::from(dy));
+                if !cell.is_transparent()
+                    && nx >= 0
+                    && ny >= 0
+                    && nx < i64::from(self.width)
+                    && ny < i64::from(self.height)
+                {
+                    self.set_cell(nx as u32, ny as u32, cell);
+                }
+            }
+        }
+    }
+
+    /// The part of the grid left after cutting the given number of cells off each side.
+    pub fn cropped(&self, left: u32, top: u32, right: u32, bottom: u32) -> Grid {
+        let (w, h) = (self.width - left - right, self.height - top - bottom);
+        let mut out = Grid::new(w, h, self.background);
+        for y in 0..h {
+            for x in 0..w {
+                out.set_cell(x, y, self.get(x + left, y + top));
+            }
+        }
+        out
     }
 }
 
@@ -134,20 +182,28 @@ fn margins(spec: &Spec) -> Margins {
     }
 }
 
-struct Ink<'a> {
+struct LineGeom {
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+}
+
+struct Ink {
     paint: Paint,
-    lay: &'a Layout<'a>,
+    layout_w: u32,
+    lines: Vec<LineGeom>,
     /// Letter number of every layout cell with ink, `u32::MAX` elsewhere.
     letters: Vec<u32>,
     total_letters: u32,
-    /// Index into `lay.lines` for every layout row.
+    /// Index into `lines` for every layout row.
     row_line: Vec<usize>,
     texture: Option<(Texture, u32)>,
 }
 
-impl Ink<'_> {
+impl Ink {
     fn base_color(&self, x: u32, y: u32) -> Rgb {
-        let letter = self.letters[y as usize * self.lay.width as usize + x as usize];
+        let letter = self.letters[y as usize * self.layout_w as usize + x as usize];
         match &self.paint {
             Paint::Solid(c) => *c,
             Paint::Letters(colors) => colors[letter as usize % colors.len()],
@@ -157,7 +213,7 @@ impl Ink<'_> {
                 direction,
                 dither,
             } => {
-                let line = &self.lay.lines[self.row_line[y as usize]];
+                let line = &self.lines[self.row_line[y as usize]];
                 let (lx, ly) = (x - line.x, y - line.y);
                 let (pos, len) = match direction {
                     Direction::Vertical => (ly, line.height),
@@ -180,7 +236,104 @@ impl Ink<'_> {
     }
 }
 
-pub fn render(spec: &Spec, font: &Font) -> Result<Rendered, Error> {
+/// Cells added around the static canvas so that moving parts never leave it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Extra {
+    pub left: u32,
+    pub top: u32,
+    pub right: u32,
+    pub bottom: u32,
+}
+
+/// One letter with ink: its cells in layout coordinates and the box it occupies.
+pub(crate) struct Letter {
+    pub cells: Vec<(u32, u32)>,
+    pub x: u32,
+    pub width: u32,
+    pub line: usize,
+}
+
+/// How the ink of a frame is recolored after the normal fill, texture and bevel.
+#[derive(Clone, Debug, Default)]
+pub(crate) enum Tint {
+    #[default]
+    None,
+    /// Cells whose x + y lies in `start..start + width` move `percent` toward white.
+    Band {
+        start: i32,
+        width: u32,
+        percent: u32,
+    },
+    /// Hue of every letter turned by its own number of steps out of `hues`.
+    Hue { steps: Vec<u32>, hues: u32 },
+}
+
+/// What differs between a frame and the still logo. The default is the still logo.
+#[derive(Default)]
+pub(crate) struct Pose {
+    /// Per letter move in cells.
+    pub shift: Vec<(i32, i32)>,
+    /// Letters left out, per letter.
+    pub hidden: Vec<bool>,
+    /// Cells painted right after the plate, below every other layer.
+    pub underlay: Vec<(u32, u32, Rgb)>,
+    /// Copies of the lettering moved by (dx, dy), painted right after the shadow.
+    pub ghosts: Vec<(i32, i32, Rgb)>,
+    pub tint: Tint,
+    /// Cells painted last, over everything.
+    pub overlay: Vec<(u32, u32, Rgb)>,
+}
+
+/// Masks of the lettering and the layers derived from it.
+pub(crate) struct Layers {
+    pub text: Mask,
+    source: Vec<u32>,
+    outline: Option<(Mask, Rgb)>,
+    extrusion: Option<(Vec<u8>, Vec<Rgb>)>,
+    /// Lettering, outline and extrusion together.
+    pub body: Mask,
+}
+
+/// A composed frame in two parts, so that rows of the artwork can move without the plate.
+pub(crate) struct Parts {
+    pub backdrop: Grid,
+    pub front: Grid,
+}
+
+impl Parts {
+    pub fn flatten(self) -> Grid {
+        let Parts {
+            mut backdrop,
+            front,
+        } = self;
+        backdrop.overlay(&front);
+        backdrop
+    }
+}
+
+pub(crate) struct Scene {
+    pub spec: Spec,
+    ink: Ink,
+    pub letters: Vec<Letter>,
+    lay_w: u32,
+    lay_h: u32,
+    base_w: u32,
+    base_h: u32,
+    margin_left: u32,
+    margin_top: u32,
+    extra: Extra,
+    pub scale: u32,
+    pub missing: Vec<char>,
+    pub font_height: u32,
+    pub body_color: Rgb,
+    darkest: Rgb,
+    shadow_default: Rgb,
+    /// Ramp stops and shadow color the flames and sparks are drawn from.
+    pub flame_stops: Vec<Rgb>,
+    pub flame_shadow: Rgb,
+}
+
+pub(crate) fn render_scene(spec: &Spec, font: &Font) -> Result<Scene, Error> {
     spec.validate()?;
     let named = match &spec.fill.palette {
         Some(name) => Some(palette::resolve(name)?),
@@ -190,6 +343,8 @@ pub fn render(spec: &Spec, font: &Font) -> Result<Rendered, Error> {
     let stops: Vec<Rgb> = named
         .as_ref()
         .map_or_else(|| fire.stops.to_vec(), |p| p.stops.clone());
+    let flame_stops = stops.clone();
+    let flame_shadow = named.as_ref().map_or(fire.shadow, |p| p.shadow);
 
     let paint = if !spec.fill.letter_colors.is_empty() {
         Paint::Letters(spec.fill.letter_colors.clone())
@@ -242,6 +397,83 @@ pub fn render(spec: &Spec, font: &Font) -> Result<Rendered, Error> {
     let m = margins(spec);
     let canvas_w = u64::from(lay.width) + m.left + m.right;
     let canvas_h = u64::from(lay.height) + m.top + m.bottom;
+    check_canvas(canvas_w, canvas_h, scale)?;
+
+    let lw = lay.width as usize;
+    let mut letter_ids = vec![u32::MAX; lw * lay.height as usize];
+    let mut letters: Vec<Letter> = Vec::new();
+    for (line_no, line) in lay.lines.iter().enumerate() {
+        for p in &line.glyphs {
+            if !p.glyph.has_ink() {
+                continue;
+            }
+            let id = letters.len() as u32;
+            let mut cells = Vec::new();
+            for gy in 0..p.glyph.height() {
+                for gx in 0..p.glyph.width() {
+                    if p.glyph.get(gx, gy) {
+                        cells.push((p.x + gx, p.y + gy));
+                        letter_ids[(p.y + gy) as usize * lw + (p.x + gx) as usize] = id;
+                    }
+                }
+            }
+            letters.push(Letter {
+                cells,
+                x: p.x,
+                width: p.glyph.width(),
+                line: line_no,
+            });
+        }
+    }
+    let mut row_line = vec![0usize; lay.height as usize];
+    for (i, line) in lay.lines.iter().enumerate() {
+        for row in line.y..line.y + line.height {
+            row_line[row as usize] = i;
+        }
+    }
+    let lines: Vec<LineGeom> = lay
+        .lines
+        .iter()
+        .map(|l| LineGeom {
+            x: l.x,
+            y: l.y,
+            width: l.width,
+            height: l.height,
+        })
+        .collect();
+    let ink = Ink {
+        paint,
+        layout_w: lay.width,
+        lines,
+        letters: letter_ids,
+        total_letters: letters.len() as u32,
+        row_line,
+        texture: spec.texture.clone().map(|t| (t, spec.seed)),
+    };
+
+    Ok(Scene {
+        spec: spec.clone(),
+        ink,
+        letters,
+        lay_w: lay.width,
+        lay_h: lay.height,
+        base_w: canvas_w as u32,
+        base_h: canvas_h as u32,
+        margin_left: m.left as u32,
+        margin_top: m.top as u32,
+        extra: Extra::default(),
+        scale,
+        missing: lay.missing,
+        font_height: font.height(),
+        body_color,
+        darkest,
+        shadow_default,
+        flame_stops,
+        flame_shadow,
+    })
+}
+
+fn check_canvas(canvas_w: u64, canvas_h: u64, scale: u32) -> Result<(), Error> {
     if canvas_w > u64::from(MAX_GRID_SIDE) || canvas_h > u64::from(MAX_GRID_SIDE) {
         return Err(Error::CanvasTooLarge {
             width: canvas_w,
@@ -255,118 +487,229 @@ pub fn render(spec: &Spec, font: &Font) -> Result<Rendered, Error> {
             height: out_h,
         });
     }
-    let (cw, ch) = (canvas_w as u32, canvas_h as u32);
-    let (ox, oy) = (m.left as u32, m.top as u32);
+    Ok(())
+}
 
-    let lw = lay.width as usize;
-    let mut letters = vec![u32::MAX; lw * lay.height as usize];
-    let mut letter = 0u32;
-    let mut text = Mask::new(cw, ch);
-    for line in &lay.lines {
-        for p in &line.glyphs {
-            for gy in 0..p.glyph.height() {
-                for gx in 0..p.glyph.width() {
-                    if p.glyph.get(gx, gy) {
-                        text.set(ox + p.x + gx, oy + p.y + gy);
-                        letters[(p.y + gy) as usize * lw + (p.x + gx) as usize] = letter;
+impl Scene {
+    pub fn set_extra(&mut self, extra: Extra) -> Result<(), Error> {
+        let w = u64::from(self.base_w) + u64::from(extra.left) + u64::from(extra.right);
+        let h = u64::from(self.base_h) + u64::from(extra.top) + u64::from(extra.bottom);
+        check_canvas(w, h, self.scale)?;
+        self.extra = extra;
+        Ok(())
+    }
+
+    pub fn extra(&self) -> Extra {
+        self.extra
+    }
+
+    pub fn canvas(&self) -> (u32, u32) {
+        (
+            self.base_w + self.extra.left + self.extra.right,
+            self.base_h + self.extra.top + self.extra.bottom,
+        )
+    }
+
+    /// Canvas position of layout cell (0, 0).
+    pub fn origin(&self) -> (u32, u32) {
+        (
+            self.margin_left + self.extra.left,
+            self.margin_top + self.extra.top,
+        )
+    }
+
+    /// Canvas rows (first, past the last) taken by the lines of text.
+    pub fn text_rows(&self) -> (u32, u32) {
+        let oy = self.origin().1;
+        (oy, oy + self.lay_h)
+    }
+
+    /// Canvas rectangle (x, y, width, height) of the static canvas inside the grown one.
+    pub fn static_rect(&self) -> (u32, u32, u32, u32) {
+        (self.extra.left, self.extra.top, self.base_w, self.base_h)
+    }
+
+    /// Canvas rectangle (x, y, width, height) of the line, with the glyph band as its height.
+    pub fn line_rect(&self, line: usize) -> (u32, u32, u32, u32) {
+        let (ox, oy) = self.origin();
+        let l = &self.ink.lines[line];
+        (ox + l.x, oy + l.y, l.width, l.height)
+    }
+
+    /// The masks a pose produces: only letter moves and hidden letters matter here.
+    pub fn layers(&self, pose: &Pose) -> Layers {
+        let (cw, ch) = self.canvas();
+        let (ox, oy) = self.origin();
+        let spec = &self.spec;
+
+        let mut text = Mask::new(cw, ch);
+        let mut source = vec![u32::MAX; cw as usize * ch as usize];
+        for (j, letter) in self.letters.iter().enumerate() {
+            if pose.hidden.get(j).copied().unwrap_or(false) {
+                continue;
+            }
+            let (dx, dy) = pose.shift.get(j).copied().unwrap_or((0, 0));
+            for &(lx, ly) in &letter.cells {
+                let x = i64::from(ox + lx) + i64::from(dx);
+                let y = i64::from(oy + ly) + i64::from(dy);
+                if x < 0 || y < 0 || x >= i64::from(cw) || y >= i64::from(ch) {
+                    continue;
+                }
+                text.set(x as u32, y as u32);
+                source[y as usize * cw as usize + x as usize] = ly * self.lay_w + lx;
+            }
+        }
+
+        let outline = spec.outline.as_ref().map(|o| {
+            (
+                effects::dilate(&text, o.width, o.connectivity).minus(&text),
+                o.color.unwrap_or(self.shadow_default),
+            )
+        });
+        let mut silhouette = text.clone();
+        if let Some((ring, _)) = &outline {
+            silhouette.union_with(ring);
+        }
+        let extrusion = spec.extrude.as_ref().map(|e| {
+            let steps = effects::extrusion_steps(&silhouette, e.dx, e.dy, e.length);
+            let target = e.color.unwrap_or(self.shadow_default);
+            let colors: Vec<Rgb> = (0..=e.length)
+                .map(|k| effects::extrusion_color(self.darkest, target, e.step, k))
+                .collect();
+            (steps, colors)
+        });
+        let mut body = silhouette;
+        if let Some((steps, _)) = &extrusion {
+            for (i, k) in steps.iter().enumerate() {
+                if *k > 0 {
+                    body.set((i % cw as usize) as u32, (i / cw as usize) as u32);
+                }
+            }
+        }
+        Layers {
+            text,
+            source,
+            outline,
+            extrusion,
+            body,
+        }
+    }
+
+    pub fn paint(&self, layers: &Layers, pose: &Pose) -> Parts {
+        let (cw, ch) = self.canvas();
+        let spec = &self.spec;
+        let lw = self.lay_w as usize;
+        let Layers {
+            text,
+            source,
+            outline,
+            extrusion,
+            body,
+        } = layers;
+
+        let mut backdrop = Grid::new(cw, ch, spec.bg);
+        if let Some(plate) = &spec.plate {
+            let body_c = plate.color.unwrap_or(PLATE_COLOR);
+            let border_c = plate.border_color.unwrap_or(self.body_color);
+            let (el, et) = (self.extra.left, self.extra.top);
+            for y in 0..self.base_h {
+                for x in 0..self.base_w {
+                    match effects::plate_cell(
+                        x,
+                        y,
+                        self.base_w,
+                        self.base_h,
+                        plate.border,
+                        plate.cut_corners,
+                    ) {
+                        Some(PlateCell::Border) => backdrop.set(x + el, y + et, border_c),
+                        Some(PlateCell::Body) => backdrop.set(x + el, y + et, body_c),
+                        None => {}
                     }
                 }
             }
-            if p.glyph.has_ink() {
-                letter += 1;
+        }
+
+        let mut front = Grid::new(cw, ch, None);
+        for &(x, y, c) in &pose.underlay {
+            front.set(x, y, c);
+        }
+        if let Some(shadow) = &spec.shadow {
+            let color = shadow.color.unwrap_or(self.shadow_default);
+            let moved = body.shifted(i64::from(shadow.dx), i64::from(shadow.dy));
+            for (x, y) in moved.cells() {
+                front.set(x, y, color);
             }
         }
-    }
-    let mut row_line = vec![0usize; lay.height as usize];
-    for (i, line) in lay.lines.iter().enumerate() {
-        for row in line.y..line.y + line.height {
-            row_line[row as usize] = i;
-        }
-    }
-    let ink = Ink {
-        paint,
-        lay: &lay,
-        letters,
-        total_letters: letter,
-        row_line,
-        texture: spec.texture.clone().map(|t| (t, spec.seed)),
-    };
-
-    let outline = spec.outline.as_ref().map(|o| {
-        (
-            effects::dilate(&text, o.width, o.connectivity).minus(&text),
-            o.color.unwrap_or(shadow_default),
-        )
-    });
-    let mut silhouette = text.clone();
-    if let Some((ring, _)) = &outline {
-        silhouette.union_with(ring);
-    }
-    let extrusion = spec.extrude.as_ref().map(|e| {
-        let steps = effects::extrusion_steps(&silhouette, e.dx, e.dy, e.length);
-        let target = e.color.unwrap_or(shadow_default);
-        let colors: Vec<Rgb> = (0..=e.length)
-            .map(|k| effects::extrusion_color(darkest, target, e.step, k))
-            .collect();
-        (steps, colors)
-    });
-    let mut body = silhouette;
-    if let Some((steps, _)) = &extrusion {
-        for (i, k) in steps.iter().enumerate() {
-            if *k > 0 {
-                body.set((i % cw as usize) as u32, (i / cw as usize) as u32);
+        for &(dx, dy, color) in &pose.ghosts {
+            for (x, y) in text.shifted(i64::from(dx), i64::from(dy)).cells() {
+                front.set(x, y, color);
             }
         }
-    }
-
-    let mut grid = Grid::new(cw, ch, spec.bg);
-    if let Some(plate) = &spec.plate {
-        let body_c = plate.color.unwrap_or(PLATE_COLOR);
-        let border_c = plate.border_color.unwrap_or(body_color);
-        for y in 0..ch {
-            for x in 0..cw {
-                match effects::plate_cell(x, y, cw, ch, plate.border, plate.cut_corners) {
-                    Some(PlateCell::Border) => grid.set(x, y, border_c),
-                    Some(PlateCell::Body) => grid.set(x, y, body_c),
-                    None => {}
+        if let Some((steps, colors)) = extrusion {
+            for (i, k) in steps.iter().enumerate() {
+                if *k > 0 {
+                    let (x, y) = ((i % cw as usize) as u32, (i / cw as usize) as u32);
+                    front.set(x, y, colors[*k as usize]);
                 }
             }
         }
-    }
-    if let Some(shadow) = &spec.shadow {
-        let color = shadow.color.unwrap_or(shadow_default);
-        let moved = body.shifted(i64::from(shadow.dx), i64::from(shadow.dy));
-        for (x, y) in moved.cells() {
-            grid.set(x, y, color);
-        }
-    }
-    if let Some((steps, colors)) = &extrusion {
-        for (i, k) in steps.iter().enumerate() {
-            if *k > 0 {
-                let (x, y) = ((i % cw as usize) as u32, (i / cw as usize) as u32);
-                grid.set(x, y, colors[*k as usize]);
+        if let Some((ring, color)) = outline {
+            for (x, y) in ring.cells() {
+                front.set(x, y, *color);
             }
         }
-    }
-    if let Some((ring, color)) = &outline {
-        for (x, y) in ring.cells() {
-            grid.set(x, y, *color);
+        let bevel = spec.bevel.as_ref().map(|b| b.amount);
+        for (x, y) in text.cells() {
+            let at = source[y as usize * cw as usize + x as usize] as usize;
+            let (lx, ly) = ((at % lw) as u32, (at / lw) as u32);
+            let color = self.ink.color_at(lx, ly);
+            let color = match bevel {
+                Some(amount) => {
+                    effects::apply_bevel(color, effects::bevel_edge(text, x, y), amount)
+                }
+                None => color,
+            };
+            let color = match &pose.tint {
+                Tint::None => color,
+                Tint::Band {
+                    start,
+                    width,
+                    percent,
+                } => {
+                    let along = i64::from(x) + i64::from(y) - i64::from(*start);
+                    if (0..i64::from(*width)).contains(&along) {
+                        color.mix(Rgb::WHITE, *percent)
+                    } else {
+                        color
+                    }
+                }
+                Tint::Hue { steps, hues } => {
+                    let letter = self.ink.letters[at] as usize;
+                    color.turn_hue(steps[letter], *hues)
+                }
+            };
+            front.set(x, y, color);
         }
-    }
-    let bevel = spec.bevel.as_ref().map(|b| b.amount);
-    for (x, y) in text.cells() {
-        let color = ink.color_at(x - ox, y - oy);
-        let color = match bevel {
-            Some(amount) => effects::apply_bevel(color, effects::bevel_edge(&text, x, y), amount),
-            None => color,
-        };
-        grid.set(x, y, color);
+        for &(x, y, c) in &pose.overlay {
+            front.set(x, y, c);
+        }
+
+        Parts { backdrop, front }
     }
 
+    pub fn compose(&self, pose: &Pose) -> Parts {
+        self.paint(&self.layers(pose), pose)
+    }
+}
+
+pub fn render(spec: &Spec, font: &Font) -> Result<Rendered, Error> {
+    let scene = render_scene(spec, font)?;
+    let grid = scene.compose(&Pose::default()).flatten();
     Ok(Rendered {
         grid,
-        scale,
+        scale: scene.scale,
         title: spec.text.clone(),
-        missing: lay.missing,
+        missing: scene.missing.clone(),
     })
 }

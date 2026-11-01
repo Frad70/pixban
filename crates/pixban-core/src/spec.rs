@@ -4,8 +4,9 @@ use crate::color::Rgb;
 use crate::error::Error;
 use crate::layout::Align;
 use crate::limits::{
-    MAX_EXTRUDE, MAX_LETTER_COLORS, MAX_OUTLINE_WIDTH, MAX_PADDING, MAX_PLATE_BORDER, MAX_SCALE,
-    MAX_SHADOW_OFFSET, MAX_TEXTURE_PERIOD,
+    MAX_AMPLITUDE, MAX_BAND, MAX_COUNT, MAX_EXTRUDE, MAX_FLAME, MAX_FRAMES, MAX_FRAME_MS, MAX_HUES,
+    MAX_LETTER_COLORS, MAX_OUTLINE_WIDTH, MAX_PADDING, MAX_PLATE_BORDER, MAX_SCALE,
+    MAX_SHADOW_OFFSET, MAX_TEXTURE_PERIOD, MIN_FRAMES, MIN_FRAME_MS, MIN_HUES,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -188,6 +189,155 @@ impl Default for Plate {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AnimKind {
+    Burn,
+    Shimmer,
+    Wave,
+    Type,
+    Glitch,
+    Rainbow,
+    Sparkle,
+}
+
+impl AnimKind {
+    pub const ALL: [AnimKind; 7] = [
+        AnimKind::Burn,
+        AnimKind::Shimmer,
+        AnimKind::Wave,
+        AnimKind::Type,
+        AnimKind::Glitch,
+        AnimKind::Rainbow,
+        AnimKind::Sparkle,
+    ];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            AnimKind::Burn => "burn",
+            AnimKind::Shimmer => "shimmer",
+            AnimKind::Wave => "wave",
+            AnimKind::Type => "type",
+            AnimKind::Glitch => "glitch",
+            AnimKind::Rainbow => "rainbow",
+            AnimKind::Sparkle => "sparkle",
+        }
+    }
+}
+
+/// An animation and its knobs. Every knob that is left out takes a default that depends on
+/// the animation and the font; a knob set for an animation that does not use it is an error.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Anim {
+    pub kind: AnimKind,
+    /// Frames in one loop, 2 to 120.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frames: Option<u32>,
+    /// Milliseconds per frame, 20 to 2000.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frame_ms: Option<u32>,
+    /// Burn: height of the flames in cells.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub flame: Option<u32>,
+    /// Wave: how far letters bob; glitch: the longest slice shift, in cells.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub amplitude: Option<u32>,
+    /// Shimmer: width of the light band in cells.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub band: Option<u32>,
+    /// Glitch: bursts per loop; sparkle: twinkles per loop.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<u32>,
+    /// Rainbow: number of distinct hues in one turn.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hues: Option<u32>,
+}
+
+impl Anim {
+    pub fn new(kind: AnimKind) -> Anim {
+        Anim {
+            kind,
+            frames: None,
+            frame_ms: None,
+            flame: None,
+            amplitude: None,
+            band: None,
+            count: None,
+            hues: None,
+        }
+    }
+
+    fn validate(&self) -> Result<(), Error> {
+        use AnimKind::*;
+        if let Some(v) = self.frames {
+            check("frames", v, MIN_FRAMES, MAX_FRAMES)?;
+        }
+        if let Some(v) = self.frame_ms {
+            check("frame time in ms", v, MIN_FRAME_MS, MAX_FRAME_MS)?;
+        }
+        let knob = |name, what, value, kinds, min, max| Knob {
+            name,
+            what,
+            value,
+            kinds,
+            min,
+            max,
+        };
+        let knobs = [
+            knob(
+                "flame",
+                "flame height",
+                self.flame,
+                &[Burn][..],
+                1,
+                MAX_FLAME,
+            ),
+            knob(
+                "amplitude",
+                "amplitude",
+                self.amplitude,
+                &[Wave, Glitch],
+                1,
+                MAX_AMPLITUDE,
+            ),
+            knob("band", "band width", self.band, &[Shimmer], 1, MAX_BAND),
+            knob(
+                "count",
+                "count",
+                self.count,
+                &[Glitch, Sparkle],
+                1,
+                MAX_COUNT,
+            ),
+            knob("hues", "hues", self.hues, &[Rainbow], MIN_HUES, MAX_HUES),
+        ];
+        for k in knobs {
+            let Some(v) = k.value else { continue };
+            if !k.kinds.contains(&self.kind) {
+                let users: Vec<&str> = k.kinds.iter().map(|x| x.name()).collect();
+                return Err(Error::InvalidSetting(format!(
+                    "{} only applies to {}, not to {}",
+                    k.name,
+                    users.join(" and "),
+                    self.kind.name()
+                )));
+            }
+            check(k.what, v, k.min, k.max)?;
+        }
+        Ok(())
+    }
+}
+
+struct Knob<'a> {
+    name: &'static str,
+    what: &'static str,
+    value: Option<u32>,
+    kinds: &'a [AnimKind],
+    min: u32,
+    max: u32,
+}
+
 fn is_default<T: Default + PartialEq>(v: &T) -> bool {
     *v == T::default()
 }
@@ -232,6 +382,8 @@ pub struct Spec {
     pub texture: Option<Texture>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plate: Option<Plate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anim: Option<Anim>,
 }
 
 impl Default for Spec {
@@ -253,6 +405,7 @@ impl Default for Spec {
             bevel: None,
             texture: None,
             plate: None,
+            anim: None,
         }
     }
 }
@@ -327,6 +480,9 @@ impl Spec {
         }
         if let Some(p) = &self.plate {
             check("plate border", p.border, 0, MAX_PLATE_BORDER)?;
+        }
+        if let Some(a) = &self.anim {
+            a.validate()?;
         }
         Ok(())
     }

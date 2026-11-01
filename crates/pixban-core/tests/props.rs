@@ -211,6 +211,7 @@ fn arb_spec() -> impl Strategy<Value = Spec> {
                 bevel: effects.bevel,
                 texture: effects.texture,
                 plate: effects.plate,
+                anim: None,
             },
         )
 }

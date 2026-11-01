@@ -1,0 +1,20 @@
+---
+source: crates/pixban-cli/tests/snapshots.rs
+expression: "svg(&\n[\"HI\", \"-f\", \"block\", \"-p\", \"gold\", \"--shadow\", \"1,1\", \"--anim\", \"shimmer\",\n\"--frames\", \"9\", \"--band\", \"3\", \"--scale\", \"4\"])"
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="32" viewBox="0 0 15 8" shape-rendering="crispEdges" role="img">
+<title>HI</title>
+<style>.a{animation-duration:630ms;animation-timing-function:step-end;animation-iteration-count:infinite}.h{visibility:hidden}.b{transform:translate(-1000px,0)}@keyframes k0{0%{transform:translate(-3px,0)}11.111%{transform:translate(1px,0)}22.222%{transform:translate(5px,0)}33.333%{transform:translate(9px,0)}44.444%{transform:translate(13px,0)}55.555%{transform:translate(17px,0)}66.666%{transform:translate(-1000px,0)}}@media (prefers-reduced-motion:reduce){.a{animation:none!important}}</style>
+<path fill="#ffe98a" d="M0 0h2v1h-2zM4 0h2v1h-2zM8 0h6v1h-6z"/>
+<path fill="#ffdb5c" d="M0 1h2v1h-2zM4 1h2v1h-2zM10 1h2v1h-2z"/>
+<path fill="#3a2304" d="M2 1h1v2h-1zM6 1h1v6h-1zM9 1h1v1h-1zM12 1h3v1h-3zM12 2h1v4h-1zM2 4h2v1h-2zM2 5h1v2h-1zM1 7h2v1h-2zM5 7h2v1h-2zM9 7h6v1h-6z"/>
+<path fill="#f7c93a" d="M0 2h2v1h-2zM4 2h2v1h-2zM10 2h2v1h-2z"/>
+<path fill="#dca31f" d="M0 3h6v1h-6zM10 3h2v1h-2z"/>
+<path fill="#bf8512" d="M0 4h2v1h-2zM4 4h2v1h-2zM10 4h2v1h-2z"/>
+<path fill="#9d680d" d="M0 5h2v1h-2zM4 5h2v1h-2zM10 5h2v1h-2z"/>
+<path fill="#7a4e09" d="M0 6h2v1h-2zM4 6h2v1h-2zM8 6h6v1h-6z"/>
+<clipPath id="c"><path d="M0 0h2v3h-2zM4 0h2v3h-2zM8 0h6v1h-6zM10 1h2v5h-2zM0 3h6v1h-6zM0 4h2v3h-2zM4 4h2v3h-2zM8 6h6v1h-6z"/></clipPath>
+<g clip-path="url(#c)">
+<path class="a b" style="animation-name:k0" fill="#fff" fill-opacity=".5" d="M0 0h3v1h-3zM-1 1h3v1h-3zM-2 2h3v1h-3zM-3 3h3v1h-3zM-4 4h3v1h-3zM-5 5h3v1h-3zM-6 6h3v1h-3zM-7 7h3v1h-3z"/>
+</g>
+</svg>

@@ -124,3 +124,69 @@ preset!(
     "--padding",
     "1"
 );
+preset!(
+    animated_burn,
+    "HI",
+    "-f",
+    "block",
+    "-p",
+    "fire",
+    "--shadow",
+    "1,1",
+    "--anim",
+    "burn",
+    "--frames",
+    "4",
+    "--flame",
+    "3",
+    "--scale",
+    "4"
+);
+preset!(
+    animated_wave,
+    "HI",
+    "-f",
+    "block",
+    "-p",
+    "ice",
+    "--anim",
+    "wave",
+    "--frames",
+    "6",
+    "--amplitude",
+    "2",
+    "--scale",
+    "4"
+);
+preset!(
+    animated_shimmer,
+    "HI",
+    "-f",
+    "block",
+    "-p",
+    "gold",
+    "--shadow",
+    "1,1",
+    "--anim",
+    "shimmer",
+    "--frames",
+    "9",
+    "--band",
+    "3",
+    "--scale",
+    "4"
+);
+preset!(
+    animated_type,
+    "HI",
+    "-f",
+    "block",
+    "-p",
+    "neon",
+    "--anim",
+    "type",
+    "--frames",
+    "12",
+    "--scale",
+    "4"
+);

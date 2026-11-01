@@ -30,7 +30,51 @@ impl Rgb {
         let f = |c: u8| (u16::from(c) * percent_left / 100) as u8;
         Rgb(f(self.0), f(self.1), f(self.2))
     }
+
+    /// Turns the hue by `step` of `hues` equal parts of a full turn. Saturation is raised to
+    /// at least 78%, so grays and pale colors take part in a rainbow too. Integer math only.
+    pub(crate) fn turn_hue(self, step: u32, hues: u32) -> Rgb {
+        let (h, s, v) = self.to_hsv();
+        let turned = (h + (step * 3600 / hues) as i32) % 3600;
+        Rgb::from_hsv(turned, s.max(MIN_SATURATION), v)
+    }
+
+    /// Hue in tenths of a degree, saturation and value from 0 to 255.
+    fn to_hsv(self) -> (i32, i32, i32) {
+        let (r, g, b) = (i32::from(self.0), i32::from(self.1), i32::from(self.2));
+        let max = r.max(g).max(b);
+        let d = max - r.min(g).min(b);
+        let s = if max == 0 { 0 } else { d * 255 / max };
+        let h = if d == 0 {
+            0
+        } else if max == r {
+            600 * (g - b) / d
+        } else if max == g {
+            600 * (b - r) / d + 1200
+        } else {
+            600 * (r - g) / d + 2400
+        };
+        (h.rem_euclid(3600), s, max)
+    }
+
+    fn from_hsv(h: i32, s: i32, v: i32) -> Rgb {
+        let (sector, f) = (h / 600, h % 600);
+        let p = v * (255 - s) / 255;
+        let q = v * (255 * 600 - s * f) / (255 * 600);
+        let t = v * (255 * 600 - s * (600 - f)) / (255 * 600);
+        let (r, g, b) = match sector {
+            0 => (v, t, p),
+            1 => (q, v, p),
+            2 => (p, v, t),
+            3 => (p, q, v),
+            4 => (t, p, v),
+            _ => (v, p, q),
+        };
+        Rgb(r as u8, g as u8, b as u8)
+    }
 }
+
+const MIN_SATURATION: i32 = 200;
 
 impl fmt::Display for Rgb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
