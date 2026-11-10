@@ -4,8 +4,6 @@
 
 <img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/demo.gif" alt="Three lines of text in the burn, rainbow and shimmer animations">
 
-[Читать на русском](README.ru.md)
-
 </div>
 
 pixban turns a line of text into pixel art. Pick a built-in font and a palette, add a shadow, an outline, a bevel or a plate, and save the result as SVG, PNG, GIF or APNG. It is made for the things people put at the top of a project: a logo for a README, a banner for a release page, a title for a docs site.
