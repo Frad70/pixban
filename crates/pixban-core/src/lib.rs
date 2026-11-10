@@ -1,4 +1,5 @@
 mod anim;
+mod ansi;
 mod apng;
 mod color;
 mod effects;
@@ -17,6 +18,7 @@ mod specimen;
 mod svg;
 
 pub use anim::{render_animation, render_frame, Animated};
+pub use ansi::{render_ansi, AnsiCaps, Blocks, ColorMode};
 pub use color::{ParseColorError, Rgb, Rgba};
 pub use error::{Error, ParseError};
 pub use font::{CaseMode, Font, Glyph};
@@ -28,4 +30,4 @@ pub use spec::{
     Anim, AnimKind, Bevel, Connectivity, Direction, Dither, Extrude, Fill, Outline, Plate, Shadow,
     Spec, Texture, TextureKind,
 };
-pub use specimen::specimen;
+pub use specimen::{specimen, specimen_fit};

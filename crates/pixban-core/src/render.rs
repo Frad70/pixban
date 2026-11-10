@@ -34,6 +34,17 @@ impl Grid {
         }
     }
 
+    /// A grid from row-major cells; `cells` must hold `width * height` entries.
+    pub fn from_cells(width: u32, height: u32, cells: Vec<Rgba>) -> Grid {
+        assert_eq!(cells.len(), width as usize * height as usize);
+        Grid {
+            width,
+            height,
+            cells,
+            background: None,
+        }
+    }
+
     pub fn width(&self) -> u32 {
         self.width
     }

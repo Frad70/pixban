@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use pixban_core::{
     Align, Anim, AnimKind, Bevel, Connectivity, Direction, Dither, Extrude, Outline, Plate, Rgb,
     Shadow, Spec, Texture, TextureKind,
@@ -201,7 +201,7 @@ pub struct Cli {
     pub frames_dir: Option<PathBuf>,
 
     /// Output file; the extension picks the format (.svg, .png, .gif, .apng). Default is SVG
-    /// on stdout
+    /// on stdout, or the terminal drawing when stdout is a terminal
     #[arg(short, long, value_name = "FILE", help_heading = "Output")]
     pub output: Option<PathBuf>,
 
@@ -216,24 +216,82 @@ pub struct Cli {
     /// Print the resulting settings as TOML and exit
     #[arg(long, help_heading = "Output")]
     pub dump_spec: bool,
+
+    #[command(flatten)]
+    pub term: TermArgs,
+
+    /// Terminal animation: how many times to play, 0 until Ctrl-C
+    #[arg(long, value_name = "N", default_value_t = 1, help_heading = "Terminal")]
+    pub loops: u32,
+}
+
+#[derive(Args, Clone)]
+pub struct TermArgs {
+    /// Draw as colored text for a terminal, also when piped or written with -o
+    #[arg(long, help_heading = "Terminal")]
+    pub ansi: bool,
+
+    /// Color depth; auto reads NO_COLOR, COLORTERM and TERM
+    #[arg(long, value_enum, default_value = "auto", help_heading = "Terminal")]
+    pub color_mode: ColorModeArg,
+
+    /// Glyphs: half blocks, full blocks (two columns per cell) or # characters
+    #[arg(long, value_enum, default_value = "half", help_heading = "Terminal")]
+    pub blocks: BlocksArg,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum ColorModeArg {
+    Auto,
+    Truecolor,
+    #[value(name = "256")]
+    Ansi256,
+    #[value(name = "16")]
+    Ansi16,
+    None,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum BlocksArg {
+    Half,
+    Full,
+    Ascii,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum SnippetFor {
+    Shell,
+    Python,
+    Rust,
 }
 
 #[derive(Subcommand)]
 pub enum Command {
     /// List built-in fonts
-    Fonts,
+    Fonts {
+        /// Draw each name in its own font
+        #[arg(long)]
+        preview: bool,
+        #[command(flatten)]
+        term: TermArgs,
+    },
     /// List built-in palettes
     Palettes {
         /// Also list the extended group: hardware and themed ramps
         #[arg(long)]
         all: bool,
+        /// Draw a color strip next to each name
+        #[arg(long)]
+        preview: bool,
+        #[command(flatten)]
+        term: TermArgs,
     },
     /// Check a font file or a built-in font name and print glyph coverage
     LintFont {
         /// Built-in font name or path to a .pxf file
         target: String,
     },
-    /// Render a specimen sheet of a font as PNG
+    /// Render a specimen sheet of a font as PNG, or show it in the terminal without -o
     Specimen {
         /// Font name (see `pixban fonts`), default block
         #[arg(short, long, conflicts_with = "font_file")]
@@ -243,10 +301,25 @@ pub enum Command {
         font_file: Option<PathBuf>,
         /// Output PNG file
         #[arg(short, long, value_name = "FILE")]
-        output: PathBuf,
+        output: Option<PathBuf>,
         /// Pixels per cell (default is the font's own scale)
         #[arg(long, value_name = "N")]
         scale: Option<u32>,
+        #[command(flatten)]
+        term: TermArgs,
+    },
+    /// Print a block that reproduces a logo in a shell, Python or Rust program
+    Snippet {
+        /// Language of the pasted text
+        #[arg(long = "for", value_enum, default_value = "shell")]
+        kind: SnippetFor,
+        /// The usual pixban arguments: text and flags
+        #[arg(
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            value_name = "ARGS"
+        )]
+        args: Vec<String>,
     },
 }
 

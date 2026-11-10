@@ -16,6 +16,9 @@ pixban-core = { version = "0.1.0", path = "../pixban-core" }
 pixban-fonts = { version = "0.1.0", path = "../pixban-fonts" }
 toml = "1.1.8"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.191"
+
 [dev-dependencies]
 insta = "1.49.0"
 png = "0.18.1"

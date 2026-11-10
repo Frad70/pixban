@@ -59,7 +59,16 @@ pub fn specimen(font: &Font, scale: u32) -> Result<Rendered, Error> {
             max: MAX_SCALE,
         });
     }
-    let max_cells = (SHEET_MAX_PX / scale).max(40);
+    sheet(font, scale, (SHEET_MAX_PX / scale).max(40))
+}
+
+/// The same sheet at one pixel per cell, wrapped to at most `columns` cells wide where the
+/// glyphs allow it.
+pub fn specimen_fit(font: &Font, columns: u32) -> Result<Rendered, Error> {
+    sheet(font, 1, columns.saturating_sub(2 * MARGIN).max(1))
+}
+
+fn sheet(font: &Font, scale: u32, max_cells: u32) -> Result<Rendered, Error> {
     let fire = palette::find("fire").expect("fire palette exists").stops;
     let mixed = font.case() == crate::font::CaseMode::Mixed;
 
