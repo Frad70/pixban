@@ -1,12 +1,18 @@
-# pixban
+<div align="center">
 
-Pixel-art logos and banners from text.
+<img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/logo.svg" alt="PIXBAN" width="440">
 
-pixban is a command line tool that renders text as pixel art. It writes SVG, PNG, GIF and APNG files and can animate the result.
+<img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/demo.gif" alt="Three lines of text in the burn, rainbow and shimmer animations">
+
+[Читать на русском](README.ru.md)
+
+</div>
+
+pixban turns a line of text into pixel art. Pick a built-in font and a palette, add a shadow, an outline, a bevel or a plate, and save the result as SVG, PNG, GIF or APNG. It is made for the things people put at the top of a project: a logo for a README, a banner for a release page, a title for a docs site.
+
+The same text also works in a terminal. pixban can print it in color, animate it in place, or draw it with plain `#` characters for a shell banner.
 
 ## Install
-
-Requires a Rust toolchain with Cargo.
 
 From a clone of this repository:
 
@@ -14,34 +20,26 @@ From a clone of this repository:
 cargo install --locked --path crates/pixban-cli
 ```
 
-This installs the `pixban` binary into Cargo's bin directory.
-
-To build without installing:
+This puts a `pixban` binary into Cargo's bin directory. To build it in place instead:
 
 ```sh
 cargo build --release -p pixban-cli
 ./target/release/pixban --help
 ```
 
-Run the test suite with `cargo test --workspace`. At this commit it runs 223 tests, all passing.
-
 ## Quick start
 
-The images in this README, and the script that generates them (`examples/gen.sh`), live in the `attachments` branch. They are generated with `PIXBAN=<path to binary> sh examples/gen.sh`.
+Five commands, all from the same binary. Each result is shown under the command that made it.
 
 ```sh
-pixban brazier -f block -p fire --shadow 1,1 -o logo.svg
+pixban brazier -f block -p fire --shadow 1,1 -o brazier.svg
 ```
 
-Writes an SVG with the word set in the block font, filled with the fire palette and a one-cell shadow. Without `-o`, the SVG goes to standard output, or the terminal drawing when standard output is a terminal (see Terminal output).
-
-![BRAZIER in the block font with a fire gradient and a dark one-cell shadow](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/logo.svg)
+![BRAZIER in the block font with a fire gradient and a dark one-cell shadow](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/brazier.svg)
 
 ```sh
 pixban "Pixel\nBanner" --align center --outline 1 --extrude 4 -o banner.png
 ```
-
-Writes a 416 by 168 pixel PNG with two centered lines. A literal `\n` in the text starts a new line. The block font has only capitals, so "Pixel" is drawn as PIXEL.
 
 ![PIXEL above BANNER, centered, with a dark outline and an extruded side](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/banner.png)
 
@@ -49,227 +47,165 @@ Writes a 416 by 168 pixel PNG with two centered lines. A literal `\n` in the tex
 pixban hi -p "#ff0066,#ffcc00/#330011" --plate --bevel 30 -o plate.png
 ```
 
-Writes a 160 by 104 pixel PNG. The palette has two colors, and the shadow color follows the slash. The text sits on a plate, and the fill has a bevel.
-
 ![HI in pink and yellow on a dark plate with a yellow border](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/plate.png)
 
 ```sh
 pixban wave -f tiny --anim wave --frames 12 --frame-ms 80 -o wave.gif
 ```
 
-Writes an animated GIF. `--frames` and `--frame-ms` set the loop length and the delay per frame.
-
 ![WAVE in the tiny font, letters bobbing up and down](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/wave.gif)
+
+Settings can live in a file. This writes the settings of the first command to TOML, and the second command makes the same SVG from that file, byte for byte:
 
 ```sh
 pixban brazier -f block -p fire --shadow 1,1 --dump-spec > logo.toml
 pixban --spec logo.toml -o logo.svg
 ```
 
-The first command saves the settings as TOML. The second reads them and writes the same SVG as the first example, byte for byte.
+![The same BRAZIER logo, produced from the settings file](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/brazier.svg)
 
-![The same BRAZIER logo, produced from the settings file](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/logo.svg)
+## Gallery
 
-## Fonts
+Fonts. Each font renders the same two lines, Latin and Cyrillic:
 
-`pixban fonts` lists the built-in fonts. The default font is `block`. Select a font with `-f NAME`. `--font-file FILE` loads a font from a file instead and replaces `-f`. It accepts .pxf, BDF and PCF files, optionally gzipped.
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-block.svg" width="420"><br><code>pixban "PIXEL\nПИКСЕЛЬ" -f block</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-slim.svg" width="420"><br><code>pixban "PIXEL\nПИКСЕЛЬ" -f slim</code></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-tiny.svg" width="420"><br><code>pixban "PIXEL\nПИКСЕЛЬ" -f tiny</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-mega.svg" width="420"><br><code>pixban "PIXEL\nПИКСЕЛЬ" -f mega</code></td>
+</tr>
+</table>
 
-| Font  | Height (cells) | Glyphs | Letters |
-|-------|----------------|--------|---------|
-| block | 7              | 107    | Latin and Cyrillic capitals, digits |
-| slim  | 7              | 166    | Latin and Cyrillic, both cases, digits |
-| tiny  | 5              | 107    | Latin and Cyrillic capitals, digits |
-| mega  | 10             | 107    | Latin and Cyrillic capitals, digits |
+Effects. Each group is shown with one example:
 
-`pixban lint-font NAME` (or a font file path) prints the glyph coverage of a font.
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-outline-extrude.svg" width="360"><br><code>pixban PIXEL -p gold --outline 2 --extrude 3</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-bevel.svg" width="360"><br><code>pixban PIXEL -p synthwave --bevel 40</code></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-texture.svg" width="360"><br><code>pixban PIXEL -p ice --texture noise</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-plate.svg" width="360"><br><code>pixban PIXEL -p neon --plate --cut-corners</code></td>
+</tr>
+</table>
 
-Each font renders the same two lines.
+Animations, saved as GIF:
 
-```sh
-pixban "PIXEL\nПИКСЕЛЬ" -f block --align center -p fire -o font-block.svg
+<table>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/burn.gif"><br><code>pixban PIXEL -p fire --anim burn</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/shimmer.gif"><br><code>pixban PIXEL --anim shimmer</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/glitch.gif"><br><code>pixban PIXEL --anim glitch</code></td>
+</tr>
+<tr>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/rainbow.gif"><br><code>pixban PIXEL --anim rainbow</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/sparkle.gif"><br><code>pixban PIXEL --anim sparkle</code></td>
+<td align="center"><img src="https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/type.gif"><br><code>pixban PIXEL --anim type</code></td>
+</tr>
+</table>
+
+The full commands for every example are in `examples/gen.sh` on the `attachments` branch.
+
+## Usage
+
+```
+pixban [OPTIONS] [TEXT]
+pixban <fonts|palettes|lint-font|specimen|snippet> ...
 ```
 
-![PIXEL above ПИКСЕЛЬ in the block font](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-block.svg)
+The flags below are grouped by what they change. Ranges are inclusive.
 
-```sh
-pixban "PIXEL\nПИКСЕЛЬ" -f slim --align center -p fire -o font-slim.svg
-```
+### Text and layout
 
-![PIXEL above ПИКСЕЛЬ in the slim font](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-slim.svg)
+| Flag | What it does |
+|---|---|
+| `TEXT` | The text. A literal `\n` starts a new line. |
+| `-f, --font NAME` | `block` (default), `slim`, `tiny` or `mega` |
+| `--font-file FILE` | Load a font from a .pxf, BDF or PCF file, optionally gzipped. Replaces `-f`. |
+| `--align` | `left`, `center` or `right`. Alignment of lines in multi-line text |
+| `--line-gap N` | Empty rows between lines, 0 to 32 (default 1) |
+| `--spacing N` | Letter spacing in cells, -2 to 32. Replaces the font's own. |
+| `--scale N` | Pixels per cell, a whole number |
+| `--padding N` | Empty cells around the art, 0 to 64 (2 with a plate) |
 
-```sh
-pixban "PIXEL\nПИКСЕЛЬ" -f tiny --align center -p fire -o font-tiny.svg
-```
+### Fill
 
-![PIXEL above ПИКСЕЛЬ in the tiny font](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-tiny.svg)
+| Flag | What it does |
+|---|---|
+| `-p, --palette NAME` | A built-in palette, or `"#hex,#hex/#shadow"` for your own. See `pixban palettes --all`. |
+| `--gradient` | `vertical`, `horizontal` or `diagonal`. Direction of the palette gradient |
+| `--dither` | `none`, `bayer2` or `bayer4`. Ordered dithering between neighboring palette stops |
+| `--color #rrggbb` | One solid color |
+| `--per-letter` | One palette stop per letter |
+| `--letter-colors "#hex,..."` | Colors cycled over the letters, up to 64 |
 
-```sh
-pixban "PIXEL\nПИКСЕЛЬ" -f mega --align center -p fire -o font-mega.svg
-```
+### Effects
 
-![PIXEL above ПИКСЕЛЬ in the mega font](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/font-mega.svg)
+| Flag | What it does |
+|---|---|
+| `--shadow DX,DY` | Hard shadow offset in cells. `--shadow-color` sets its color. |
+| `--outline N` | Outline width, 1 to 4. `--outline-color`, and `--outline-conn` (`4` for a diamond, `8` for a square). |
+| `--extrude N` | Extrusion length, 1 to 32. `--extrude-dir DX,DY`, `--extrude-color`, `--extrude-step PCT`. |
+| `--bevel PCT` | Light top-left edge and dark bottom-right edge, 1 to 100 |
+| `--texture KIND` | `scanlines`, `checker` or `noise`. `--texture-strength PCT`, `--texture-period N`, `--seed N`. |
+| `--plate` | Text on a pixel plate. `--plate-color`, `--plate-border N`, `--plate-border-color`, `--cut-corners`. |
+| `--bg #rrggbb` | Solid background. The default is transparent. |
 
-## Palettes
+### Animation
 
-`pixban palettes` lists the default palettes: fire, ice, toxic, neon, gold, synthwave, mono, rainbow. `pixban palettes --all` adds the extended group: pico8-warm, pico8-cool, gameboy, nes, c64, cga, lava, ocean, forest, sunset, pastel, vaporwave, ember.
+| Flag | What it does |
+|---|---|
+| `--anim KIND` | `burn`, `shimmer`, `wave`, `type`, `glitch`, `rainbow` or `sparkle` |
+| `--frames N` | Frames in one loop, 2 to 120 |
+| `--frame-ms MS` | Milliseconds per frame, 20 to 2000 |
+| `--flame N` | Burn: flame height in cells, 1 to 32 |
+| `--amplitude N` | Wave: how far letters bob. Glitch: longest slice shift. 1 to 16. |
+| `--band N` | Shimmer: width of the light band, 1 to 32 |
+| `--count N` | Glitch: bursts per loop. Sparkle: twinkles per loop. 1 to 64. |
+| `--hues N` | Rainbow: distinct hues in one turn, 3 to 36 (default 12) |
+| `--frames-dir DIR` | Also write every frame as a numbered PNG |
 
-`-p` takes a palette name, or a list of colors as `"#hex,#hex,..."` with an optional `/#shadow` at the end.
+### Output
 
-`--per-letter` puts one palette stop on each letter, spread over the whole text.
+| Flag | What it does |
+|---|---|
+| `-o, --output FILE` | Writes .svg, .png, .gif or .apng, picked by the extension |
+| `--format` | `svg`, `png`, `gif` or `apng`. Overrides the extension. Also works on standard output. |
+| `--spec FILE` | Loads settings from a TOML file. Flags override the file. |
+| `--dump-spec` | Prints the settings as TOML and exits |
+| `--ansi` | Draws colored text, also when piped or written with `-o` |
+| `--color-mode` | `auto` (default), `truecolor`, `256`, `16` or `none`. Color depth for terminal output (see Terminal output) |
+| `--blocks` | `half` (default), `full` or `ascii`. Glyphs for terminal output (see Terminal output) |
+| `--loops N` | Terminal animation: plays N times, 0 until Ctrl-C (default 1) |
 
-```sh
-pixban PIXEL -f block -p fire --per-letter -o palette-fire.svg
-```
+### Subcommands
 
-![PIXEL in the fire palette, one color per letter](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/palette-fire.svg)
+| Command | What it does |
+|---|---|
+| `pixban fonts [--preview]` | Lists the fonts. `--preview` draws each name in its own font. |
+| `pixban palettes [--all] [--preview]` | Lists the palettes. `--all` adds the extended group. |
+| `pixban lint-font NAME` or `FILE` | Prints the glyph coverage of a font |
+| `pixban specimen -f FONT [-o FILE.png]` | Shows the glyphs of a font, in the terminal or as a PNG |
+| `pixban snippet ARGS [--for LANG]` | Prints code that draws the same logo. `LANG` is `shell` (default), `python` or `rust`. |
 
-```sh
-pixban PIXEL -f block -p ice --per-letter -o palette-ice.svg
-```
+Some places to use it:
 
-![PIXEL in the ice palette, one color per letter](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/palette-ice.svg)
-
-```sh
-pixban PIXEL -f block -p ocean --per-letter -o palette-ocean.svg
-```
-
-![PIXEL in the ocean palette, one color per letter](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/palette-ocean.svg)
-
-Other fill options:
-
-- `--gradient vertical|horizontal|diagonal` sets the direction of the palette gradient.
-- `--dither none|bayer2|bayer4` applies ordered dithering between neighboring palette stops.
-- `--color #rrggbb` sets a solid fill.
-- `--letter-colors "#hex,#hex,..."` cycles up to 64 colors over the letters.
-
-## Effects
-
-Effects can be combined. The shadow effect is shown in the quick start. Each group below has one example.
-
-### Outline and extrusion
-
-```sh
-pixban PIXEL -f block -p gold --outline 2 --outline-color "#111111" --extrude 3 --extrude-color "#b03a2e" -o effect-outline-extrude.svg
-```
-
-![PIXEL in gold with a black outline and a red extruded side](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-outline-extrude.svg)
-
-- `--outline N` sets the width in cells, 1 to 4. `--outline-color` defaults to the palette's shadow color.
-- `--outline-conn 4|8` sets the neighborhood: 4 gives a diamond, 8 a square (default 8).
-- `--extrude N` sets the length in cells, 1 to 32. `--extrude-dir DX,DY` takes values from -1 to 1 (default 1,1).
-- `--extrude-color` is the color the extrusion darkens toward. `--extrude-step PCT` sets how far each step moves toward it, 1 to 100 (default 30).
-- `--shadow DX,DY` is a hard offset in cells, and `--shadow-color` sets its color.
-
-### Bevel
-
-```sh
-pixban PIXEL -f block -p synthwave --bevel 40 -o effect-bevel.svg
-```
-
-![PIXEL in the synthwave palette with a beveled fill](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-bevel.svg)
-
-`--bevel PCT`, 1 to 100, lightens the top-left edge and darkens the bottom-right edge.
-
-### Texture
-
-```sh
-pixban PIXEL -f block -p ice --texture noise --texture-strength 40 --seed 7 -o effect-texture.svg
-```
-
-![PIXEL in the ice palette with a noise texture](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-texture.svg)
-
-- `--texture scanlines|checker|noise` sets the pattern.
-- `--texture-strength PCT`, 1 to 100 (default 25).
-- `--texture-period N` for scanlines: every Nth row is darker, 2 to 16 (default 2).
-- `--seed N` fixes the noise. The same seed always gives the same file.
-
-### Plate
-
-```sh
-pixban PIXEL -f block -p neon --plate --cut-corners --plate-border 2 -o effect-plate.svg
-```
-
-![PIXEL in neon colors on a dark plate with cut corners](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/effect-plate.svg)
-
-- `--plate` puts the text on a pixel plate. `--plate-color` defaults to #0d1117.
-- `--plate-border N`, 0 to 8 cells (default 1). `--plate-border-color` defaults to the middle color of the fill.
-- `--cut-corners` removes the four corner cells of the plate.
-
-### Padding, background and layout
-
-- `--padding N` sets empty cells around the artwork, 0 to 64 (2 with a plate).
-- `--bg #rrggbb` sets a solid background. The default is transparent.
-- `--align left|center|right` sets the alignment of lines.
-- `--line-gap N` sets empty rows between lines, 0 to 32 (default 1).
-- `--spacing N` sets letter spacing in cells, -2 to 32, and replaces the font's own.
-- `--scale N` sets pixels per cell.
-
-## Animations
-
-`--anim KIND` turns the output into an animation. The kinds are burn, shimmer, wave, type, glitch, rainbow and sparkle. The wave animation is in the quick start. The output is an animated SVG, GIF or APNG, depending on the file extension.
-
-The examples below use the block font at `--scale 4` to keep the files small.
-
-```sh
-pixban PIXEL -f block -p fire --anim burn --flame 6 --frames 16 --frame-ms 60 --scale 4 -o burn.gif
-```
-
-![PIXEL in the fire palette with flames rising from the letters](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/burn.gif)
-
-```sh
-pixban PIXEL -f block --anim shimmer --band 4 --frames 16 --frame-ms 60 --scale 4 -o shimmer.gif
-```
-
-![PIXEL with a light band moving across the letters](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/shimmer.gif)
-
-```sh
-pixban PIXEL -f block --anim glitch --count 4 --amplitude 3 --frames 16 --frame-ms 80 --scale 4 -o glitch.gif
-```
-
-![PIXEL with horizontal slices shifted sideways in short bursts](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/glitch.gif)
-
-```sh
-pixban PIXEL -f block --anim rainbow --frames 12 --frame-ms 80 --scale 4 -o rainbow.gif
-```
-
-![PIXEL with the fill color cycling through hues](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/rainbow.gif)
-
-```sh
-pixban PIXEL -f block --anim sparkle --count 8 --frames 12 --frame-ms 100 --scale 4 -o sparkle.gif
-```
-
-![PIXEL with small bright points twinkling on the letters](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/sparkle.gif)
-
-```sh
-pixban PIXEL -f block --anim type --frames 12 --frame-ms 120 --scale 4 -o type.gif
-```
-
-![PIXEL appearing letter by letter with a cursor](https://raw.githubusercontent.com/Frad70/pixban/attachments/examples/type.gif)
-
-Animation flags:
-
-- `--frames N`: frames in one loop, 2 to 120. The default depends on the animation.
-- `--frame-ms MS`: milliseconds per frame, 20 to 2000. The default depends on the animation.
-- `--flame N` (burn): flame height in cells, 1 to 32.
-- `--amplitude N` (wave): how far letters bob. (glitch): the longest slice shift. Both in cells, 1 to 16.
-- `--band N` (shimmer): width of the light band in cells, 1 to 32.
-- `--count N` (glitch): bursts per loop. (sparkle): twinkles per loop. Both 1 to 64.
-- `--hues N` (rainbow): distinct hues in one turn, 3 to 36 (default 12).
-- `--frames-dir DIR`: also writes every frame as a numbered PNG, such as `frame-000.png`.
-
-## Export formats
-
-The output format follows the extension of `-o`: `.svg`, `.png`, `.gif` or `.apng`. `--format svg|png|gif|apng` overrides the extension and also works on standard output. Without `-o`, the output is SVG on standard output, or the terminal drawing when standard output is a terminal (see Terminal output).
+- a header image at the top of a README, like the one above
+- a banner on a release page or a project page
+- a short title printed by a shell script at login, with `--blocks ascii` or `pixban snippet`
 
 ## Terminal output
 
-When standard output is a terminal and there is no `-o`, pixban prints the logo as text. The default `half` mode draws it with half-block characters (`▀`, `▄`, `█`): each logo cell is one column, and each text line holds two rows of cells. `--blocks full` draws with full blocks, and `--blocks ascii` draws with `#` characters. Both take two columns per cell and one row per line.
+When standard output is a terminal and there is no `-o`, pixban draws the logo as text. In the default `half` mode each logo cell is one column, and two rows of cells share one line, drawn with `▀`, `▄` and `█`. `--blocks full` uses full blocks with two columns per cell, and `--blocks ascii` uses `#` with two columns per cell.
 
 ```sh
 pixban hi -f tiny --blocks ascii --color-mode none
 ```
 
-Output, exactly as printed:
+This prints, exactly:
 
 ```
 ##  ##  ######
@@ -279,115 +215,81 @@ Output, exactly as printed:
 ##  ##  ######
 ```
 
-`--color-mode` accepts `auto` (the default), `truecolor`, `256`, `16` and `none`. Any value other than `auto` overrides the environment. In `auto` mode pixban reads the environment in this order:
+`--color-mode` is `auto` by default. Any other value overrides the environment. In `auto` mode pixban reads, in this order:
 
 1. `NO_COLOR` is set: no color.
-2. `COLORTERM` is `truecolor` or `24bit`: truecolor.
+2. `COLORTERM` is `truecolor` or `24bit`: 24-bit color.
 3. `TERM` names a 256-color terminal, such as `xterm-256color`: 256 colors.
 4. `TERM` is `xterm` or `linux`: 16 colors.
 5. `TERM` is unset, empty or `dumb`: no color.
 
-In truecolor mode each character has its own 24-bit foreground and background colors. In 256 mode the colors are 256-color palette entries. In 16 mode they are the 16 ANSI colors. In none mode the characters have no color.
-
-The drawing must fit in the terminal width. pixban reads the width from the `COLUMNS` variable when it is set, and from the terminal otherwise. A drawing wider than that is not printed. pixban exits with status 1 and writes an error to standard error, for example on a terminal 40 columns wide:
+The drawing must fit in the terminal. pixban reads the width from `COLUMNS` when it is set, and from the terminal otherwise. A drawing that does not fit is not printed. pixban exits with status 1 and writes an error, for example on a terminal 40 columns wide:
 
 ```
 error: the drawing is 54 columns wide but the terminal has 40; use shorter text, a smaller font or a wider terminal
 ```
 
-When standard output is not a terminal and `COLUMNS` is not set, the drawing is not checked against a width.
+What fits in 80 columns:
 
-Examples at 80 columns, in half mode unless noted:
+- `brazier` in the block font is 54 columns, which fits. With `--blocks full` it is 108 and does not fit.
+- `"Hello world"` in the block font is 85 columns and does not fit. With `-f tiny` it fits.
+- `specimen -f block` is 95 columns and does not fit. With `-f tiny` it is exactly 80 and fits.
 
-- `pixban brazier -f block` is 54 columns and fits. With `--blocks full` or `--blocks ascii` it is 108 columns and is refused.
-- `pixban "Hello world" -f block` is 85 columns and is refused. With `-f tiny` it fits.
-- `pixban "PIXEL ПИКСЕЛЬ" -f block` is 101 columns and is refused.
-- `pixban specimen -f block` is 95 columns and is refused. With `-f tiny` it is 80 columns and fits.
+With `--anim` on a terminal, the animation plays in place, and the cursor is hidden until it ends. `--loops 0` plays until Ctrl-C. Ctrl-C ends playback with exit status 0 and the cursor is shown again (tested with SIGINT). When standard output is not a terminal, an animation with `--ansi` is written as one frame.
 
-With `--anim` on a terminal, the animation plays in place. Each frame is drawn over the previous one, and the cursor is hidden until playback ends. `--loops N` sets how many times the animation plays, 1 by default. `--loops 0` plays until Ctrl-C. Ctrl-C ends playback with exit status 0, and the cursor is shown again. This was tested with SIGINT sent to the process.
-
-When standard output is not a terminal, an animation with `--ansi` is written as one frame, without cursor control, and `--loops` has no effect.
-
-Previews:
-
-- `pixban fonts --preview` draws each font name in its own font.
-- `pixban palettes --preview` draws a color strip next to each name. With `--color-mode none` the strips are plain block characters:
+`pixban snippet` prints a short program that draws the same logo in shell, Python or Rust (`--for`). For the shell form with the command above, it prints, exactly:
 
 ```
-█████████████████████ ███ fire
-█████████████████████ ███ ice
-█████████████████████ ███ toxic
-█████████████████████ ███ neon
-█████████████████████ ███ gold
-█████████████████████ ███ synthwave
-█████████████████████ ███ mono
-█████████████████████ ███ rainbow
-```
-
-- `pixban palettes --all --preview` also shows the extended palettes. The widest line is 35 columns.
-- `pixban specimen -f FONT` with no `-o` draws the font's glyphs in the terminal. With `-o FILE.png` it writes the PNG as before.
-
-Snippet:
-
-`pixban snippet ARGS` prints a short program that draws the same logo. `ARGS` are the usual text and flags. `--for shell` is the default. `--for python` and `--for rust` select the other languages. The first line is a comment with the command that generated it.
-
-```sh
-pixban snippet hi -f tiny --blocks ascii --color-mode none
-```
-
-Output, exactly as printed:
-
-```
-# regenerate: pixban hi -f tiny --blocks ascii --color-mode none --ansi
+# regenerate: pixban hi -f tiny --blocks ascii --ansi --color-mode none
 printf '%s' $'##  ##  ######\n##  ##    ##  \n######    ##  \n##  ##    ##  \n##  ##  ######\n'
 ```
 
-Limits of the snippet:
-
-- It always adds `--ansi`. Without `--color-mode` it writes truecolor escapes whatever the environment says, including `NO_COLOR`.
-- For an animation, the snippet contains one frame.
-
-Limit of `-o` with `--ansi`: the text drawing is written into the file whatever its name, so `-o logo.svg --ansi` produces text, not SVG.
+A snippet always adds `--ansi`. Without `--color-mode` it writes truecolor escapes, and it ignores `NO_COLOR`.
 
 ## Settings file
 
-`--dump-spec` prints the settings for the given command as TOML and exits. For a multi-line text:
+`--dump-spec` prints the settings of a command as TOML. `--spec FILE` reads them back. Flags on the command line override the file, including the text.
+
+```sh
+pixban brazier -f block -p fire --shadow 1,1 --dump-spec
+```
 
 ```toml
-text = """
-Pixel
-Banner"""
+text = "brazier"
 font = "block"
-align = "center"
 
 [fill]
+palette = "fire"
 direction = "vertical"
 
-[outline]
-width = 1
-connectivity = "8"
-
-[extrude]
-length = 4
+[shadow]
 dx = 1
 dy = 1
-step = 30
 ```
 
-`--spec FILE` loads settings from a TOML file. Flags on the command line override values from the file, including the text. For example, `pixban --spec banner.toml -f tiny` renders the file's text in the tiny font.
+## How it works
 
-Animation settings use an `[anim]` section:
+Each font is a `.pxf` file. It is plain text: a short header with the name, height, spacing and case, then one block per character. In each block a `#` is a filled cell and a `.` is an empty one.
 
-```toml
-[anim]
-kind = "wave"
-frames = 12
-frame_ms = 80
-amplitude = 2
-```
+The text is laid out into a grid of cells, and the grid is painted in a fixed order: the background and the plate, then the shadow, the extrusion, the outline, the letters with their gradient or texture, and last the bevel edges. Each layer only paints over the layers below it, so the options never change the order. `--scale` multiplies each cell by a whole number of pixels, so the edges stay sharp.
+
+SVG output joins neighboring cells of the same color into rectangles and writes one path per color. That keeps the files small: `logo.svg` in the examples has eight colors and eight paths.
+
+Animations are computed frame by frame from the frame number, so the last frame leads back to the first without a jump. The burn flames use noise with integer arithmetic only, so the same settings give the same output every run. The burn look follows the fire of [brazier](https://github.com/Frad70/brazier).
+
+## Requirements
+
+- Rust with Cargo. The project was built and tested on Linux with Rust 1.99.
+- A terminal with UTF-8 for the terminal drawing. Colors follow what the terminal reports, as described above.
+- ImageMagick (`magick`) only if you want to rebuild `demo.gif` with `examples/gen.sh`.
+
+## Credits
+
+The fire palette comes from Fabien Sanglard's
+[How DOOM fire was done](https://fabiensanglard.net/doom_fire_psx/), the same
+palette [brazier](https://github.com/Frad70/brazier) uses for its terminal fire.
+The BRAZIER sample logo is the one from brazier.
 
 ## License
 
-The code is licensed under the MIT License (see `LICENSE`). Copyright (c) 2026 Frad70.
-
-The bundled fonts in `crates/pixban-fonts/fonts` are licensed under the SIL Open Font License, Version 1.1 (see `crates/pixban-fonts/fonts/OFL.txt`). Copyright 2026 Frad70.
+The code is MIT licensed. The bundled fonts are under the SIL Open Font License, Version 1.1. Copyright 2026 Frad70 for both. See `LICENSE` and `crates/pixban-fonts/fonts/OFL.txt`.
