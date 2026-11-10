@@ -231,9 +231,9 @@ What fits in 80 columns:
 
 - `brazier` in the block font is 54 columns, which fits. With `--blocks full` it is 108 and does not fit.
 - `"Hello world"` in the block font is 85 columns and does not fit. With `-f tiny` it fits.
-- `specimen -f block` is 95 columns and does not fit. With `-f tiny` it is exactly 80 and fits.
+- `specimen -f block` is 95 columns and does not fit. With `-f tiny` the sheet wraps to the terminal width, so it fits in 80 columns and is refused only below 50.
 
-With `--anim` on a terminal, the animation plays in place, and the cursor is hidden until it ends. `--loops 0` plays until Ctrl-C. Ctrl-C ends playback with exit status 0 and the cursor is shown again (tested with SIGINT). When standard output is not a terminal, an animation with `--ansi` is written as one frame.
+With `--anim` on a terminal, the animation plays in place, and the cursor is hidden until it ends. `--loops 0` plays until Ctrl-C. Ctrl-C ends playback with exit status 0 and the cursor is shown again. When standard output is not a terminal, an animation with `--ansi` is written as one frame.
 
 `pixban snippet` prints a short program that draws the same logo in shell, Python or Rust (`--for`). For the shell form with the command above, it prints, exactly:
 
