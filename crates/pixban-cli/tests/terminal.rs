@@ -231,3 +231,35 @@ fn specimen_without_output_shows_the_sheet() {
     assert!(out.lines().all(|l| l.chars().count() <= 80));
     assert!(!out.contains('\x1b'));
 }
+
+fn closed_early(args: &[&str]) -> Output {
+    use std::process::Stdio;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_pixban"))
+        .args(args)
+        .env_clear()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    drop(child.stdout.take());
+    child.wait_with_output().unwrap()
+}
+
+#[test]
+fn a_closed_pipe_ends_quietly() {
+    let cases: [&[&str]; 4] = [
+        &["fonts", "--preview"],
+        &["brazier"],
+        &["brazier", "--ansi"],
+        &["palettes", "--all"],
+    ];
+    for args in cases {
+        let out = closed_early(args);
+        assert!(
+            out.stderr.is_empty(),
+            "{args:?}: {:?}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert_ne!(out.status.code(), Some(101), "{args:?}");
+    }
+}

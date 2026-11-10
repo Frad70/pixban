@@ -95,12 +95,23 @@ fn catch_interrupt() {
     }
     // SAFETY: the handler only stores to an atomic.
     unsafe {
+        // a closed pipe must fail the write so that the cursor is restored on the way out
+        libc::signal(libc::SIGPIPE, libc::SIG_IGN);
         libc::signal(libc::SIGINT, stop as *const () as libc::sighandler_t);
     }
 }
 
 #[cfg(not(unix))]
 fn catch_interrupt() {}
+
+/// Rust ignores SIGPIPE, which turns `pixban ... | head` into a panic in `println!`.
+pub fn default_sigpipe() {
+    #[cfg(unix)]
+    // SAFETY: restores the default disposition before any other thread exists.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
 
 fn nap(ms: u32) {
     let end = Instant::now() + Duration::from_millis(u64::from(ms));

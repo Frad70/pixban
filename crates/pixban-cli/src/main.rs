@@ -394,6 +394,7 @@ fn write_frames(anim: &pixban_core::Animated, dir: &Path) -> Result<(), String> 
 }
 
 fn main() -> ExitCode {
+    term::default_sigpipe();
     match run(Cli::parse()) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
